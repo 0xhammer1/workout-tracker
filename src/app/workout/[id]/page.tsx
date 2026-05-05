@@ -85,8 +85,8 @@ export default function WorkoutPage({ params }: { params: Promise<{ id: string }
         .eq('workout_id', id)
         .order('set_number', { ascending: true })
 
+      const map = new Map<string, ExerciseEntry>()
       if (setsRaw && setsRaw.length > 0) {
-        const map = new Map<string, ExerciseEntry>()
         for (const row of setsRaw) {
           const ex = row.exercises as unknown as Exercise
           if (!map.has(ex.id)) map.set(ex.id, { exercise: ex, sets: [] })
@@ -97,8 +97,33 @@ export default function WorkoutPage({ params }: { params: Promise<{ id: string }
             weight: row.weight !== null ? Number(row.weight) : null,
           })
         }
-        setEntries(Array.from(map.values()))
       }
+
+      // Pull in any suggested exercises stashed in sessionStorage (from the suggestion flow)
+      const suggestedKey = `suggestedExercises:${id}`
+      const suggested = sessionStorage.getItem(suggestedKey)
+      if (suggested) {
+        try {
+          const exerciseIds = JSON.parse(suggested) as string[]
+          const missing = exerciseIds.filter((eid) => !map.has(eid))
+          if (missing.length > 0) {
+            const { data: exData } = await supabase
+              .from('exercises')
+              .select('id, name, muscle_group, created_at')
+              .in('id', missing)
+            for (const ex of (exData ?? []) as Exercise[]) {
+              map.set(ex.id, { exercise: ex, sets: [] })
+            }
+          }
+          // Put all suggested exercises into edit mode by default
+          setEditingIds(new Set(exerciseIds))
+        } catch {
+          // Ignore parse errors
+        }
+        sessionStorage.removeItem(suggestedKey)
+      }
+
+      setEntries(Array.from(map.values()))
 
       // If workout is from today and empty, default to edit mode
       const today = new Date().toISOString().split('T')[0]

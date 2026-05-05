@@ -6,12 +6,17 @@ import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 import type { Workout } from '@/lib/types'
 import CategoryBadge from '@/components/CategoryBadge'
+import MuscleBadge from '@/components/MuscleBadge'
+import { suggestWorkout, startSuggestedWorkout, type Suggestion } from '@/lib/suggest'
+import { CATEGORY_LABELS, CATEGORY_COLORS } from '@/lib/categories'
 
 export default function Home() {
   const router = useRouter()
   const [recentWorkouts, setRecentWorkouts] = useState<Workout[]>([])
   const [loading, setLoading] = useState(true)
   const [starting, setStarting] = useState(false)
+  const [suggestion, setSuggestion] = useState<Suggestion | null>(null)
+  const [startingSuggested, setStartingSuggested] = useState(false)
 
   useEffect(() => {
     supabase
@@ -23,7 +28,17 @@ export default function Home() {
         setRecentWorkouts(data ?? [])
         setLoading(false)
       })
+
+    suggestWorkout().then(setSuggestion)
   }, [])
+
+  async function startSuggested() {
+    if (!suggestion) return
+    setStartingSuggested(true)
+    const id = await startSuggestedWorkout(suggestion)
+    if (id) router.push(`/workout/${id}`)
+    else setStartingSuggested(false)
+  }
 
   async function startWorkout() {
     setStarting(true)
@@ -63,11 +78,68 @@ export default function Home() {
       <button
         onClick={startWorkout}
         disabled={starting}
-        className="w-full font-semibold text-base py-4 rounded-2xl transition-all active:scale-[0.98] disabled:opacity-60 mb-10"
+        className="w-full font-semibold text-base py-4 rounded-2xl transition-all active:scale-[0.98] disabled:opacity-60 mb-6"
         style={{ background: 'var(--accent)', color: 'white' }}
       >
-        {starting ? 'Starting…' : 'Start Workout'}
+        {starting ? 'Starting…' : 'Start Empty Workout'}
       </button>
+
+      {suggestion && (
+        <div
+          className="rounded-2xl p-5 mb-10"
+          style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}
+        >
+          <div className="flex items-center justify-between mb-2 gap-2">
+            <p className="text-xs font-semibold" style={{ color: 'var(--text-secondary)' }}>
+              Suggested Today
+            </p>
+            <span
+              className="inline-flex items-center px-2 py-0.5 text-[10px] font-semibold tracking-wider uppercase rounded-full shrink-0"
+              style={{
+                background: CATEGORY_COLORS[suggestion.category].bg,
+                color: CATEGORY_COLORS[suggestion.category].color,
+              }}
+            >
+              {CATEGORY_LABELS[suggestion.category]}
+            </span>
+          </div>
+          <p className="text-sm mb-4" style={{ color: 'var(--text-secondary)' }}>
+            {suggestion.reason}
+          </p>
+
+          {suggestion.exercises.length > 0 ? (
+            <ul className="space-y-2 mb-4">
+              {suggestion.exercises.map((ex) => (
+                <li
+                  key={ex.id}
+                  className="flex items-center justify-between gap-2 px-3 py-2.5 rounded-xl"
+                  style={{ background: 'var(--surface-elevated)' }}
+                >
+                  <span className="text-sm font-medium truncate">{ex.name}</span>
+                  <MuscleBadge exercise={ex} />
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="text-sm mb-4" style={{ color: 'var(--text-tertiary)' }}>
+              No previous {CATEGORY_LABELS[suggestion.category]} day to copy from — start fresh.
+            </p>
+          )}
+
+          <button
+            onClick={startSuggested}
+            disabled={startingSuggested}
+            className="w-full font-semibold text-sm py-3 rounded-xl transition-all active:scale-[0.98] disabled:opacity-60"
+            style={{
+              background: CATEGORY_COLORS[suggestion.category].bg,
+              color: CATEGORY_COLORS[suggestion.category].color,
+              border: `1px solid ${CATEGORY_COLORS[suggestion.category].color}55`,
+            }}
+          >
+            {startingSuggested ? 'Starting…' : `Start ${CATEGORY_LABELS[suggestion.category]} Day`}
+          </button>
+        </div>
+      )}
 
       <section>
         <h2 className="text-sm font-semibold mb-3" style={{ color: 'var(--text-secondary)' }}>

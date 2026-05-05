@@ -13,6 +13,7 @@ import {
 } from 'recharts'
 import { supabase } from '@/lib/supabase'
 import ConfirmDialog from '@/components/ConfirmDialog'
+import MitchellAvatar from '@/components/MitchellAvatar'
 
 interface WeightLog {
   id: string
@@ -101,11 +102,14 @@ export default function ProfilePage() {
 
   return (
     <div>
-      <header className="pt-8 pb-6">
-        <p className="text-sm font-medium" style={{ color: 'var(--text-secondary)' }}>
-          Profile
-        </p>
-        <h1 className="text-3xl font-bold tracking-tight mt-1">Mitchell</h1>
+      <header className="pt-8 pb-6 flex items-end gap-4">
+        <MitchellAvatar className="w-24 h-28 -mb-1" />
+        <div>
+          <p className="text-sm font-medium" style={{ color: 'var(--text-secondary)' }}>
+            Profile
+          </p>
+          <h1 className="text-3xl font-bold tracking-tight mt-1">Mitchell</h1>
+        </div>
       </header>
 
       {/* Current weight card */}
