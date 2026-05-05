@@ -19,6 +19,7 @@ export default function Nav() {
       style={{
         background: 'rgba(15, 16, 20, 0.85)',
         borderTop: '1px solid var(--border)',
+        paddingBottom: 'env(safe-area-inset-bottom, 0px)',
       }}
     >
       <div className="max-w-lg mx-auto flex">
@@ -28,7 +29,7 @@ export default function Nav() {
             <Link
               key={href}
               href={href}
-              className="flex-1 flex items-center justify-center py-4 text-sm font-medium transition-colors"
+              className="flex-1 flex items-center justify-center py-3.5 text-sm font-medium transition-colors min-h-[48px]"
               style={{
                 color: active ? 'var(--text)' : 'var(--text-tertiary)',
               }}

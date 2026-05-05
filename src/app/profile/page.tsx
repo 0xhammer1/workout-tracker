@@ -176,11 +176,12 @@ export default function ProfilePage() {
             type="date"
             value={dateInput}
             onChange={(e) => setDateInput(e.target.value)}
-            className="px-3 py-3 text-sm rounded-xl outline-none"
+            className="px-3 py-3 text-base rounded-xl outline-none"
             style={{
               background: 'var(--surface-elevated)',
               color: 'var(--text)',
               border: '1px solid var(--border)',
+              minHeight: '48px',
             }}
           />
           <button
