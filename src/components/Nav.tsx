@@ -10,8 +10,12 @@ const links = [
   { href: '/profile', label: 'Profile' },
 ]
 
+const HIDE_ON = ['/login', '/auth/callback']
+
 export default function Nav() {
   const pathname = usePathname()
+
+  if (HIDE_ON.some((p) => pathname.startsWith(p))) return null
 
   return (
     <nav

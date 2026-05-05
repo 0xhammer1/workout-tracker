@@ -2,6 +2,8 @@ import type { Metadata, Viewport } from 'next'
 import { Geist } from 'next/font/google'
 import './globals.css'
 import Nav from '@/components/Nav'
+import { AuthProvider } from '@/lib/auth'
+import AuthGate from '@/components/AuthGate'
 
 const geist = Geist({ subsets: ['latin'] })
 
@@ -32,11 +34,20 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en">
       <body className={`${geist.className} min-h-screen antialiased`}>
-        <div className="max-w-lg mx-auto px-5 pt-safe pb-nav">
-          {children}
-        </div>
-        <Nav />
+        <AuthProvider>
+          <AuthGate>
+            <div className="max-w-lg mx-auto px-5 pt-safe pb-nav">
+              {children}
+            </div>
+            <NavWithAuth />
+          </AuthGate>
+        </AuthProvider>
       </body>
     </html>
   )
+}
+
+// Hide the bottom nav on the login screen
+function NavWithAuth() {
+  return <Nav />
 }

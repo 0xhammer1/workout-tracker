@@ -14,6 +14,7 @@ import {
 import { supabase } from '@/lib/supabase'
 import ConfirmDialog from '@/components/ConfirmDialog'
 import { resizeImageToDataUrl } from '@/lib/imageResize'
+import { useAuth, signOut } from '@/lib/auth'
 
 interface WeightLog {
   id: string
@@ -21,9 +22,10 @@ interface WeightLog {
   weight: number
 }
 
-type Period = 'month' | 'year' | 'all'
+type Period = 'week' | 'month' | 'year' | 'all'
 
 const PERIODS: { label: string; value: Period }[] = [
+  { label: 'Week', value: 'week' },
   { label: 'Month', value: 'month' },
   { label: 'Year', value: 'year' },
   { label: 'All', value: 'all' },
@@ -31,7 +33,8 @@ const PERIODS: { label: string; value: Period }[] = [
 
 function startDateFor(period: Period): string | null {
   const now = new Date()
-  if (period === 'month') now.setMonth(now.getMonth() - 1)
+  if (period === 'week') now.setDate(now.getDate() - 7)
+  else if (period === 'month') now.setMonth(now.getMonth() - 1)
   else if (period === 'year') now.setFullYear(now.getFullYear() - 1)
   else return null
   return now.toISOString().split('T')[0]
@@ -48,27 +51,68 @@ export default function ProfilePage() {
   const [avatarUrl, setAvatarUrl] = useState<string>('/avatar.png')
   const [uploadingAvatar, setUploadingAvatar] = useState(false)
   const [avatarOpen, setAvatarOpen] = useState(false)
+  const [displayName, setDisplayName] = useState<string>('')
+  const [editingName, setEditingName] = useState(false)
+  const [nameDraft, setNameDraft] = useState('')
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const { user } = useAuth()
 
   async function loadProfile() {
+    if (!user) return
     const { data } = await supabase
-      .from('profile')
-      .select('avatar_url')
-      .eq('id', 1)
-      .single()
-    if (data?.avatar_url) setAvatarUrl(data.avatar_url as string)
+      .from('user_profiles')
+      .select('display_name, avatar_url')
+      .eq('user_id', user.id)
+      .maybeSingle()
+    if (data) {
+      if (data.avatar_url) setAvatarUrl(data.avatar_url as string)
+      const fallbackName =
+        (user.user_metadata as { full_name?: string; name?: string })?.full_name ||
+        (user.user_metadata as { name?: string })?.name ||
+        user.email?.split('@')[0] ||
+        'You'
+      setDisplayName((data.display_name as string) || fallbackName)
+    } else {
+      const fallbackName =
+        (user.user_metadata as { full_name?: string; name?: string })?.full_name ||
+        (user.user_metadata as { name?: string })?.name ||
+        user.email?.split('@')[0] ||
+        'You'
+      setDisplayName(fallbackName)
+      // Create the profile row so future updates work
+      await supabase
+        .from('user_profiles')
+        .upsert({ user_id: user.id, display_name: fallbackName }, { onConflict: 'user_id' })
+    }
+  }
+
+  async function saveName() {
+    if (!user) return
+    const name = nameDraft.trim()
+    if (!name) {
+      setEditingName(false)
+      return
+    }
+    const { error } = await supabase
+      .from('user_profiles')
+      .upsert({ user_id: user.id, display_name: name }, { onConflict: 'user_id' })
+    if (error) {
+      alert(`Could not save: ${error.message}`)
+      return
+    }
+    setDisplayName(name)
+    setEditingName(false)
   }
 
   async function onAvatarPicked(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
-    if (!file) return
+    if (!file || !user) return
     setUploadingAvatar(true)
     try {
       const dataUrl = await resizeImageToDataUrl(file, 320, 0.85)
       const { error } = await supabase
-        .from('profile')
-        .update({ avatar_url: dataUrl })
-        .eq('id', 1)
+        .from('user_profiles')
+        .upsert({ user_id: user.id, avatar_url: dataUrl }, { onConflict: 'user_id' })
       if (error) {
         alert(`Upload failed: ${error.message}`)
       } else {
@@ -78,7 +122,6 @@ export default function ProfilePage() {
       alert(`Could not process image: ${(err as Error).message}`)
     } finally {
       setUploadingAvatar(false)
-      // Reset input so picking the same file again still triggers onChange
       if (fileInputRef.current) fileInputRef.current.value = ''
     }
   }
@@ -102,8 +145,12 @@ export default function ProfilePage() {
 
   useEffect(() => {
     load()
-    loadProfile()
   }, [])
+
+  useEffect(() => {
+    if (user) loadProfile()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id])
 
   async function logWeight() {
     const w = parseFloat(weightInput)
@@ -162,11 +209,34 @@ export default function ProfilePage() {
           onChange={onAvatarPicked}
           className="hidden"
         />
-        <div>
+        <div className="min-w-0 flex-1">
           <p className="text-sm font-medium" style={{ color: 'var(--text-secondary)' }}>
             Profile
           </p>
-          <h1 className="text-3xl font-bold tracking-tight mt-1">Mitchell</h1>
+          {editingName ? (
+            <input
+              autoFocus
+              value={nameDraft}
+              onChange={(e) => setNameDraft(e.target.value)}
+              onBlur={saveName}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') saveName()
+                if (e.key === 'Escape') setEditingName(false)
+              }}
+              className="mt-1 text-2xl font-bold tracking-tight bg-transparent outline-none w-full"
+              style={{ color: 'var(--text)', borderBottom: '1px solid var(--border-strong)' }}
+            />
+          ) : (
+            <button
+              onClick={() => {
+                setNameDraft(displayName)
+                setEditingName(true)
+              }}
+              className="mt-1 text-2xl font-bold tracking-tight text-left transition-opacity active:opacity-70 truncate w-full"
+            >
+              {displayName || '—'}
+            </button>
+          )}
         </div>
       </header>
 
@@ -381,7 +451,7 @@ export default function ProfilePage() {
             {periodChange !== null && (
               <div className="mt-4 flex items-center justify-between">
                 <span className="text-xs font-medium" style={{ color: 'var(--text-secondary)' }}>
-                  Change this period
+                  Net change
                 </span>
                 <span
                   className="text-sm font-semibold"
@@ -439,6 +509,20 @@ export default function ProfilePage() {
           </div>
         </div>
       )}
+
+      <div className="mt-10 flex justify-center">
+        <button
+          onClick={() => signOut()}
+          className="px-5 py-2 text-sm font-semibold rounded-full transition-opacity active:opacity-60"
+          style={{
+            background: 'var(--surface)',
+            color: 'var(--text-secondary)',
+            border: '1px solid var(--border)',
+          }}
+        >
+          Sign Out
+        </button>
+      </div>
 
       <ConfirmDialog
         open={pendingDeleteId !== null}
