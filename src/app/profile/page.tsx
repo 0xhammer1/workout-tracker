@@ -11,9 +11,9 @@ import {
   ResponsiveContainer,
   ReferenceLine,
 } from 'recharts'
+import Image from 'next/image'
 import { supabase } from '@/lib/supabase'
 import ConfirmDialog from '@/components/ConfirmDialog'
-import MitchellAvatar from '@/components/MitchellAvatar'
 
 interface WeightLog {
   id: string
@@ -103,7 +103,19 @@ export default function ProfilePage() {
   return (
     <div>
       <header className="pt-8 pb-6 flex items-center gap-4">
-        <MitchellAvatar className="w-28 h-28" />
+        <div
+          className="w-24 h-24 rounded-2xl overflow-hidden shrink-0"
+          style={{ border: '1px solid var(--border)' }}
+        >
+          <Image
+            src="/avatar.png"
+            alt="Mitchell"
+            width={192}
+            height={192}
+            className="w-full h-full object-cover"
+            priority
+          />
+        </div>
         <div>
           <p className="text-sm font-medium" style={{ color: 'var(--text-secondary)' }}>
             Profile
