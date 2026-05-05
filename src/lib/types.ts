@@ -2,9 +2,38 @@ export type Database = {
   public: {
     Tables: {
       exercises: {
-        Row: { id: string; name: string; muscle_group: string | null; created_at: string }
-        Insert: { id?: string; name: string; muscle_group?: string | null; created_at?: string }
-        Update: { id?: string; name?: string; muscle_group?: string | null }
+        Row: {
+          id: string
+          name: string
+          muscle_group: string | null
+          secondary_muscles: string[] | null
+          equipment: string[] | null
+          instructions: string | null
+          image_url: string | null
+          wger_id: number | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          name: string
+          muscle_group?: string | null
+          secondary_muscles?: string[] | null
+          equipment?: string[] | null
+          instructions?: string | null
+          image_url?: string | null
+          wger_id?: number | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          name?: string
+          muscle_group?: string | null
+          secondary_muscles?: string[] | null
+          equipment?: string[] | null
+          instructions?: string | null
+          image_url?: string | null
+          wger_id?: number | null
+        }
       }
       workouts: {
         Row: { id: string; date: string; notes: string | null; category: string | null; created_at: string }

@@ -121,17 +121,31 @@ export default function ExercisePicker({ onSelect, onClose, filterCategory }: Pr
               </button>
             </div>
           )}
-          {filtered.map((ex) => (
-            <button
-              key={ex.id}
-              onClick={() => onSelect(ex)}
-              className="w-full text-left px-3 py-3.5 text-base rounded-xl transition-colors active:bg-white/5 flex items-center justify-between gap-2"
-              style={{ color: 'var(--text)' }}
-            >
-              <span className="truncate">{ex.name}</span>
-              <MuscleBadge exercise={ex} />
-            </button>
-          ))}
+          {filtered.map((ex) => {
+            const exWithExtras = ex as typeof ex & { equipment?: string[] | null }
+            const equipment = exWithExtras.equipment?.[0]
+            return (
+              <button
+                key={ex.id}
+                onClick={() => onSelect(ex)}
+                className="w-full text-left px-3 py-3 text-base rounded-xl transition-colors active:bg-white/5"
+                style={{ color: 'var(--text)' }}
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <span className="truncate flex-1">{ex.name}</span>
+                  <MuscleBadge exercise={ex} />
+                </div>
+                {equipment && (
+                  <div
+                    className="text-[11px] mt-0.5 truncate"
+                    style={{ color: 'var(--text-tertiary)' }}
+                  >
+                    {equipment}
+                  </div>
+                )}
+              </button>
+            )
+          })}
           {query && filtered.length === 0 && (
             <button
               onClick={createAndSelect}
@@ -143,7 +157,18 @@ export default function ExercisePicker({ onSelect, onClose, filterCategory }: Pr
             </button>
           )}
         </div>
-        <div className="h-2" />
+        <div className="px-5 py-3 text-center text-[10px]" style={{ color: 'var(--text-tertiary)' }}>
+          Exercise data from{' '}
+          <a
+            href="https://wger.de"
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{ color: 'var(--text-secondary)', textDecoration: 'underline' }}
+          >
+            wger.de
+          </a>
+          {' '}· CC-BY-SA 4.0
+        </div>
       </div>
     </div>
   )
