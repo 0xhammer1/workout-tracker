@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import {
   LineChart,
   Line,
@@ -11,9 +11,9 @@ import {
   ResponsiveContainer,
   ReferenceLine,
 } from 'recharts'
-import Image from 'next/image'
 import { supabase } from '@/lib/supabase'
 import ConfirmDialog from '@/components/ConfirmDialog'
+import { resizeImageToDataUrl } from '@/lib/imageResize'
 
 interface WeightLog {
   id: string
@@ -45,6 +45,42 @@ export default function ProfilePage() {
   const [dateInput, setDateInput] = useState(new Date().toISOString().split('T')[0])
   const [saving, setSaving] = useState(false)
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null)
+  const [avatarUrl, setAvatarUrl] = useState<string>('/avatar.png')
+  const [uploadingAvatar, setUploadingAvatar] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  async function loadProfile() {
+    const { data } = await supabase
+      .from('profile')
+      .select('avatar_url')
+      .eq('id', 1)
+      .single()
+    if (data?.avatar_url) setAvatarUrl(data.avatar_url as string)
+  }
+
+  async function onAvatarPicked(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setUploadingAvatar(true)
+    try {
+      const dataUrl = await resizeImageToDataUrl(file, 320, 0.85)
+      const { error } = await supabase
+        .from('profile')
+        .update({ avatar_url: dataUrl })
+        .eq('id', 1)
+      if (error) {
+        alert(`Upload failed: ${error.message}`)
+      } else {
+        setAvatarUrl(dataUrl)
+      }
+    } catch (err) {
+      alert(`Could not process image: ${(err as Error).message}`)
+    } finally {
+      setUploadingAvatar(false)
+      // Reset input so picking the same file again still triggers onChange
+      if (fileInputRef.current) fileInputRef.current.value = ''
+    }
+  }
 
   async function load() {
     const { data } = await supabase
@@ -65,6 +101,7 @@ export default function ProfilePage() {
 
   useEffect(() => {
     load()
+    loadProfile()
   }, [])
 
   async function logWeight() {
@@ -103,19 +140,35 @@ export default function ProfilePage() {
   return (
     <div>
       <header className="pt-8 pb-6 flex items-center gap-4">
-        <div
-          className="w-24 h-24 rounded-2xl overflow-hidden shrink-0"
+        <button
+          type="button"
+          onClick={() => fileInputRef.current?.click()}
+          disabled={uploadingAvatar}
+          className="relative w-24 h-24 rounded-2xl overflow-hidden shrink-0 transition-opacity active:opacity-80 disabled:opacity-60"
           style={{ border: '1px solid var(--border)' }}
+          aria-label="Change profile picture"
         >
-          <Image
-            src="/avatar.png"
-            alt="Mitchell"
-            width={192}
-            height={192}
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={avatarUrl}
+            alt="Profile"
             className="w-full h-full object-cover"
-            priority
           />
-        </div>
+          {/* Edit affordance overlay */}
+          <span
+            className="absolute bottom-0 left-0 right-0 text-[10px] font-semibold tracking-wider uppercase py-1 text-center"
+            style={{ background: 'rgba(0,0,0,0.55)', color: '#f5f5f7' }}
+          >
+            {uploadingAvatar ? 'Saving…' : 'Edit'}
+          </span>
+        </button>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          onChange={onAvatarPicked}
+          className="hidden"
+        />
         <div>
           <p className="text-sm font-medium" style={{ color: 'var(--text-secondary)' }}>
             Profile
