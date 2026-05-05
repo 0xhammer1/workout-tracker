@@ -10,9 +10,33 @@ interface WorkoutSummary extends Workout {
   setCount: number
 }
 
+type Period = 'week' | 'month' | 'year' | 'all'
+
+const PERIODS: { label: string; value: Period }[] = [
+  { label: 'Week', value: 'week' },
+  { label: 'Month', value: 'month' },
+  { label: 'Year', value: 'year' },
+  { label: 'All', value: 'all' },
+]
+
+function startDateFor(period: Period): string | null {
+  const now = new Date()
+  if (period === 'week') {
+    now.setDate(now.getDate() - 7)
+  } else if (period === 'month') {
+    now.setMonth(now.getMonth() - 1)
+  } else if (period === 'year') {
+    now.setFullYear(now.getFullYear() - 1)
+  } else {
+    return null
+  }
+  return now.toISOString().split('T')[0]
+}
+
 export default function HistoryPage() {
-  const [workouts, setWorkouts] = useState<WorkoutSummary[]>([])
+  const [allWorkouts, setAllWorkouts] = useState<WorkoutSummary[]>([])
   const [loading, setLoading] = useState(true)
+  const [period, setPeriod] = useState<Period>('all')
 
   useEffect(() => {
     async function load() {
@@ -37,7 +61,7 @@ export default function HistoryPage() {
         })
       )
 
-      setWorkouts(summaries)
+      setAllWorkouts(summaries)
       setLoading(false)
     }
     load()
@@ -47,12 +71,33 @@ export default function HistoryPage() {
     e.preventDefault()
     if (!confirm('Delete this workout?')) return
     await supabase.from('workouts').delete().eq('id', workoutId)
-    setWorkouts((prev) => prev.filter((w) => w.id !== workoutId))
+    setAllWorkouts((prev) => prev.filter((w) => w.id !== workoutId))
   }
+
+  const cutoff = startDateFor(period)
+  const workouts = cutoff
+    ? allWorkouts.filter((w) => w.date >= cutoff)
+    : allWorkouts
 
   return (
     <div>
-      <h1 className="text-2xl font-bold mt-6 mb-6">History</h1>
+      <h1 className="text-2xl font-bold mt-6 mb-4">History</h1>
+
+      <div className="flex gap-2 mb-6">
+        {PERIODS.map(({ label, value }) => (
+          <button
+            key={value}
+            onClick={() => setPeriod(value)}
+            className={`flex-1 py-2 rounded-xl text-sm font-medium transition-colors ${
+              period === value
+                ? 'bg-indigo-600 text-white'
+                : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
+            }`}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
 
       {loading ? (
         <div className="space-y-3">
@@ -61,7 +106,9 @@ export default function HistoryPage() {
           ))}
         </div>
       ) : workouts.length === 0 ? (
-        <p className="text-slate-500 text-sm text-center py-16">No workouts logged yet.</p>
+        <p className="text-slate-500 text-sm text-center py-16">
+          No workouts in this period.
+        </p>
       ) : (
         <div className="space-y-3">
           {workouts.map((w) => (
@@ -87,7 +134,7 @@ export default function HistoryPage() {
                 </div>
                 <button
                   onClick={(e) => deleteWorkout(e, w.id)}
-                  className="text-slate-600 hover:text-red-400 text-sm ml-2 mt-0.5"
+                  className="ml-3 mt-0.5 bg-red-950 hover:bg-red-900 text-red-400 text-xs font-medium px-3 py-1.5 rounded-lg transition-colors shrink-0"
                 >
                   Delete
                 </button>

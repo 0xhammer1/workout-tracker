@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 import type { Workout } from '@/lib/types'
+import DinoLogo from '@/components/DinoLogo'
 
 export default function Home() {
   const router = useRouter()
@@ -40,7 +41,11 @@ export default function Home() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold mt-6 mb-8">Workout Tracker</h1>
+      <div className="flex flex-col items-center mt-6 mb-6">
+        <DinoLogo className="w-32 h-32" />
+        <h1 className="text-2xl font-bold mt-2">Dino-Sore</h1>
+        <p className="text-slate-500 text-sm">Track your gains 🦕</p>
+      </div>
 
       <button
         onClick={startWorkout}
