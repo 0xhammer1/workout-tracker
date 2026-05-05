@@ -19,6 +19,7 @@ interface SetRowWithExercise {
   exercise_id: string
   workout_id: string
   exercises: Exercise
+  workouts?: { date: string }
 }
 
 export async function suggestWorkout(): Promise<Suggestion> {
@@ -94,27 +95,86 @@ export async function suggestWorkout(): Promise<Suggestion> {
     }
   }
 
-  // Fallback: if no past workout of this category, suggest the user's most-used
-  // exercises that match the muscle groups for this category.
+  // Fallback: rotate from user's history matching the muscle groups for this category.
+  // Variety scoring: prioritize exercises the user does often, but bump priority
+  // for ones not done recently.
   if (exercises.length === 0) {
     const targetGroups = new Set<string>(CATEGORY_MUSCLE_GROUPS[suggested])
     const { data: allSets } = await supabase
       .from('sets')
-      .select('exercise_id, exercises!inner(id, name, muscle_group, created_at)')
+      .select('exercise_id, exercises!inner(id, name, muscle_group, created_at), workouts!inner(date)')
 
-    const counts = new Map<string, { ex: Exercise; count: number }>()
+    const today = new Date().toISOString().split('T')[0]
+    const stats = new Map<string, { ex: Exercise; count: number; lastDate: string }>()
     for (const row of (allSets ?? []) as unknown as SetRowWithExercise[]) {
       const ex = row.exercises
       const m = muscleForExercise(ex)
       if (!targetGroups.has(m.group)) continue
-      const entry = counts.get(ex.id)
-      if (entry) entry.count += 1
-      else counts.set(ex.id, { ex, count: 1 })
+      const date = row.workouts?.date ?? '1970-01-01'
+      const entry = stats.get(ex.id)
+      if (entry) {
+        entry.count += 1
+        if (date > entry.lastDate) entry.lastDate = date
+      } else {
+        stats.set(ex.id, { ex, count: 1, lastDate: date })
+      }
     }
-    exercises = Array.from(counts.values())
-      .sort((a, b) => b.count - a.count)
+
+    // priority = count * sqrt(daysAgo+1) → favors frequent + stale
+    const todayMs = new Date(today + 'T12:00:00').getTime()
+    exercises = Array.from(stats.values())
+      .map((v) => {
+        const daysAgo = Math.max(
+          0,
+          Math.floor((todayMs - new Date(v.lastDate + 'T12:00:00').getTime()) / 86_400_000)
+        )
+        return { ...v, priority: v.count * Math.sqrt(daysAgo + 1) }
+      })
+      .sort((a, b) => b.priority - a.priority)
       .slice(0, 5)
       .map((v) => v.ex)
+  } else {
+    // We had a previous workout to copy from. Mix in variety: swap out 1-2 exercises
+    // from the lineup with stale alternatives the user has done before.
+    const lineupIds = new Set(exercises.map((e) => e.id))
+    const targetGroups = new Set<string>(CATEGORY_MUSCLE_GROUPS[suggested])
+
+    const { data: altSets } = await supabase
+      .from('sets')
+      .select('exercise_id, exercises!inner(id, name, muscle_group, created_at), workouts!inner(date)')
+
+    const altStats = new Map<string, { ex: Exercise; count: number; lastDate: string }>()
+    for (const row of (altSets ?? []) as unknown as SetRowWithExercise[]) {
+      const ex = row.exercises
+      if (lineupIds.has(ex.id)) continue
+      const m = muscleForExercise(ex)
+      if (!targetGroups.has(m.group)) continue
+      const date = row.workouts?.date ?? '1970-01-01'
+      const entry = altStats.get(ex.id)
+      if (entry) {
+        entry.count += 1
+        if (date > entry.lastDate) entry.lastDate = date
+      } else {
+        altStats.set(ex.id, { ex, count: 1, lastDate: date })
+      }
+    }
+
+    const todayMs = new Date(new Date().toISOString().split('T')[0] + 'T12:00:00').getTime()
+    const stale = Array.from(altStats.values())
+      .map((v) => {
+        const daysAgo = Math.max(
+          0,
+          Math.floor((todayMs - new Date(v.lastDate + 'T12:00:00').getTime()) / 86_400_000)
+        )
+        return { ...v, daysAgo }
+      })
+      .filter((v) => v.daysAgo >= 14) // only swap in things not done in 2+ weeks
+      .sort((a, b) => b.daysAgo - a.daysAgo)
+
+    if (stale.length > 0 && exercises.length >= 3) {
+      // Replace the last exercise in the lineup with a stale alternative
+      exercises = [...exercises.slice(0, -1), stale[0].ex]
+    }
   }
 
   return { category: suggested, reason, exercises }

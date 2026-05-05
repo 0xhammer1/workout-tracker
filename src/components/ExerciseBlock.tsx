@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabase'
 import type { Exercise } from '@/lib/types'
 import MuscleBadge from './MuscleBadge'
 import MuscleGroupPicker from './MuscleGroupPicker'
+import { getLastBest, suggestProgression, type Suggested, type LastBest } from '@/lib/intelligence'
 
 interface ExistingSet {
   id: string
@@ -31,7 +32,8 @@ interface SetRow {
 
 export default function ExerciseBlock({ exercise, workoutId, onRemove, onDone, onMuscleGroupChange, initialSets }: Props) {
   const [sets, setSets] = useState<SetRow[]>([])
-  const [lastWeight, setLastWeight] = useState<number | null>(null)
+  const [lastBest, setLastBest] = useState<LastBest | null>(null)
+  const [suggested, setSuggested] = useState<Suggested | null>(null)
   const [muscleGroup, setMuscleGroup] = useState<string | null>(exercise.muscle_group ?? null)
   const [showMusclePicker, setShowMusclePicker] = useState(false)
 
@@ -45,22 +47,26 @@ export default function ExerciseBlock({ exercise, workoutId, onRemove, onDone, o
           saved: true,
         }))
       )
+      // Still load last best for the suggestion banner
+      getLastBest(exercise.id, workoutId).then((b) => {
+        setLastBest(b)
+        if (b) setSuggested(suggestProgression(b))
+      })
       return
     }
 
-    supabase
-      .from('sets')
-      .select('weight')
-      .eq('exercise_id', exercise.id)
-      .neq('workout_id', workoutId)
-      .not('weight', 'is', null)
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .then(({ data }) => {
-        const w = data?.[0]?.weight !== undefined && data?.[0]?.weight !== null ? Number(data[0].weight) : null
-        setLastWeight(w)
-        setSets([{ reps: '', weight: w !== null ? String(w) : '', saved: false }])
-      })
+    getLastBest(exercise.id, workoutId).then((b) => {
+      setLastBest(b)
+      const s = b ? suggestProgression(b) : null
+      setSuggested(s)
+      setSets([
+        {
+          reps: s ? String(s.reps) : '',
+          weight: s ? String(s.weight) : '',
+          saved: false,
+        },
+      ])
+    })
   }, [exercise.id, workoutId, initialSets])
 
   async function addSet() {
@@ -191,12 +197,22 @@ export default function ExerciseBlock({ exercise, workoutId, onRemove, onDone, o
         onClose={() => setShowMusclePicker(false)}
       />
 
-      {lastWeight !== null && (
-        <p className="text-xs mb-3" style={{ color: 'var(--text-tertiary)' }}>
-          Last session: {lastWeight} lbs
-        </p>
+      {lastBest && suggested && (
+        <div
+          className="mb-3 px-3 py-2 rounded-lg text-xs"
+          style={{ background: 'var(--surface-elevated)', color: 'var(--text-secondary)' }}
+        >
+          <span style={{ color: 'var(--text-tertiary)' }}>Last: </span>
+          <span style={{ color: 'var(--text)' }}>
+            {lastBest.weight}×{lastBest.reps}
+          </span>
+          <span style={{ color: 'var(--text-tertiary)' }}> · Try: </span>
+          <span style={{ color: 'var(--accent)', fontWeight: 600 }}>
+            {suggested.weight}×{suggested.reps}
+          </span>
+        </div>
       )}
-      {lastWeight === null && <div className="mb-2" />}
+      {!lastBest && <div className="mb-2" />}
 
       <div className="grid grid-cols-[1.75rem_1fr_1fr_1.5rem] gap-2 text-xs font-medium mb-2" style={{ color: 'var(--text-tertiary)' }}>
         <span>Set</span>

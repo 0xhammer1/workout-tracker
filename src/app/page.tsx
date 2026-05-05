@@ -7,6 +7,7 @@ import { supabase } from '@/lib/supabase'
 import type { Workout } from '@/lib/types'
 import CategoryBadge from '@/components/CategoryBadge'
 import MuscleBadge from '@/components/MuscleBadge'
+import RecoveryStrip from '@/components/RecoveryStrip'
 import { suggestWorkout, startSuggestedWorkout, type Suggestion } from '@/lib/suggest'
 import { CATEGORY_LABELS, CATEGORY_COLORS } from '@/lib/categories'
 
@@ -83,6 +84,8 @@ export default function Home() {
       >
         {starting ? 'Starting…' : 'Build Your Own Workout'}
       </button>
+
+      <RecoveryStrip />
 
       {suggestion && (
         <div
