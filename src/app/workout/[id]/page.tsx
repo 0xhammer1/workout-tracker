@@ -221,8 +221,8 @@ export default function WorkoutPage({ params }: { params: Promise<{ id: string }
 
   return (
     <div>
-      <div className="flex items-start justify-between pt-4 mb-6">
-        <div>
+      <div className="flex items-start justify-between pt-4 mb-6 gap-2">
+        <div className="min-w-0">
           <button
             onClick={() => router.back()}
             className="text-sm font-medium mb-2 transition-opacity active:opacity-60"
@@ -230,16 +230,29 @@ export default function WorkoutPage({ params }: { params: Promise<{ id: string }
           >
             ‹ Back
           </button>
-          <h1 className="text-2xl font-bold tracking-tight">{dateLabel}</h1>
+          <h1 className="text-2xl font-bold tracking-tight truncate">{dateLabel}</h1>
         </div>
-        <button
-          onClick={finishWorkout}
-          disabled={saving}
-          className="text-sm font-semibold py-2 px-4 rounded-full transition-all active:scale-95 disabled:opacity-60 mt-7"
-          style={{ background: 'var(--accent)', color: 'white' }}
-        >
-          {saving ? 'Saving…' : 'Done'}
-        </button>
+        <div className="flex items-center gap-2 mt-7 shrink-0">
+          <button
+            onClick={() => setConfirmDelete(true)}
+            className="text-sm font-semibold py-2 px-3 rounded-full transition-opacity active:opacity-60"
+            style={{
+              background: 'rgba(239, 68, 68, 0.1)',
+              color: 'var(--danger)',
+              border: '1px solid rgba(239, 68, 68, 0.25)',
+            }}
+          >
+            Delete
+          </button>
+          <button
+            onClick={finishWorkout}
+            disabled={saving}
+            className="text-sm font-semibold py-2 px-4 rounded-full transition-all active:scale-95 disabled:opacity-60"
+            style={{ background: 'var(--accent)', color: 'white' }}
+          >
+            {saving ? 'Saving…' : 'Done'}
+          </button>
+        </div>
       </div>
 
       <div className="mb-5">
@@ -324,23 +337,9 @@ export default function WorkoutPage({ params }: { params: Promise<{ id: string }
         value={notes}
         onChange={(e) => setNotes(e.target.value)}
         rows={2}
-        className="w-full px-4 py-3 text-sm rounded-2xl outline-none resize-none mb-6"
+        className="w-full px-4 py-3 text-sm rounded-2xl outline-none resize-none"
         style={{ background: 'var(--surface)', color: 'var(--text)', border: '1px solid var(--border)' }}
       />
-
-      <div className="flex justify-center">
-        <button
-          onClick={() => setConfirmDelete(true)}
-          className="px-5 py-2 text-sm font-semibold rounded-full transition-opacity active:opacity-60"
-          style={{
-            background: 'rgba(239, 68, 68, 0.1)',
-            color: 'var(--danger)',
-            border: '1px solid rgba(239, 68, 68, 0.25)',
-          }}
-        >
-          Delete workout
-        </button>
-      </div>
 
       {showPicker && <ExercisePicker onSelect={addExercise} onClose={() => setShowPicker(false)} />}
 
