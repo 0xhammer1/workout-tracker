@@ -1,5 +1,7 @@
 'use client'
 
+import MuscleBadge from './MuscleBadge'
+
 interface SetData {
   id: string
   set_number: number
@@ -18,11 +20,14 @@ export default function ExerciseSummary({ name, sets, onEdit }: Props) {
 
   return (
     <div className="rounded-2xl p-5 mb-3" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-semibold">{name}</h3>
+      <div className="flex items-center justify-between mb-4 gap-2">
+        <div className="flex items-center gap-2 min-w-0 flex-1">
+          <h3 className="text-lg font-semibold truncate">{name}</h3>
+          <MuscleBadge exerciseName={name} />
+        </div>
         <button
           onClick={onEdit}
-          className="text-sm font-semibold transition-opacity active:opacity-60"
+          className="text-sm font-semibold transition-opacity active:opacity-60 shrink-0"
           style={{ color: 'var(--accent)' }}
         >
           Edit

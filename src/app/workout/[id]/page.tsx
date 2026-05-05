@@ -8,6 +8,7 @@ import type { Exercise, Workout } from '@/lib/types'
 import ExerciseBlock from '@/components/ExerciseBlock'
 import ExerciseSummary from '@/components/ExerciseSummary'
 import ExercisePicker from '@/components/ExercisePicker'
+import { CATEGORIES, CATEGORY_LABELS, CATEGORY_COLORS, type Category } from '@/lib/categories'
 
 function fireworks() {
   const duration = 1500
@@ -61,6 +62,7 @@ export default function WorkoutPage({ params }: { params: Promise<{ id: string }
   const [editingIds, setEditingIds] = useState<Set<string>>(new Set())
   const [showPicker, setShowPicker] = useState(false)
   const [notes, setNotes] = useState('')
+  const [category, setCategory] = useState<Category | ''>('')
   const [saving, setSaving] = useState(false)
   const [loading, setLoading] = useState(true)
 
@@ -70,6 +72,9 @@ export default function WorkoutPage({ params }: { params: Promise<{ id: string }
       if (w) {
         setWorkout(w)
         setNotes(w.notes ?? '')
+        if (w.category && (CATEGORIES as readonly string[]).includes(w.category)) {
+          setCategory(w.category as Category)
+        }
       }
 
       const { data: setsRaw } = await supabase
@@ -171,9 +176,14 @@ export default function WorkoutPage({ params }: { params: Promise<{ id: string }
     })
   }
 
+  async function setWorkoutCategory(c: Category | '') {
+    setCategory(c)
+    await supabase.from('workouts').update({ category: c || null }).eq('id', id)
+  }
+
   async function finishWorkout() {
     setSaving(true)
-    await supabase.from('workouts').update({ notes: notes || null }).eq('id', id)
+    await supabase.from('workouts').update({ notes: notes || null, category: category || null }).eq('id', id)
     const today = new Date().toISOString().split('T')[0]
     const isTodayWorkout = workout?.date === today
     if (isTodayWorkout) {
@@ -222,6 +232,32 @@ export default function WorkoutPage({ params }: { params: Promise<{ id: string }
         >
           {saving ? 'Saving…' : 'Done'}
         </button>
+      </div>
+
+      <div className="mb-5">
+        <p className="text-xs font-semibold mb-2" style={{ color: 'var(--text-secondary)' }}>
+          Workout Type
+        </p>
+        <div className="flex flex-wrap gap-2">
+          {CATEGORIES.map((c) => {
+            const active = category === c
+            const colors = CATEGORY_COLORS[c]
+            return (
+              <button
+                key={c}
+                onClick={() => setWorkoutCategory(active ? '' : c)}
+                className="px-3 py-1.5 text-xs font-semibold rounded-full transition-all"
+                style={{
+                  background: active ? colors.bg : 'var(--surface)',
+                  color: active ? colors.color : 'var(--text-secondary)',
+                  border: `1px solid ${active ? colors.color + '55' : 'var(--border)'}`,
+                }}
+              >
+                {CATEGORY_LABELS[c]}
+              </button>
+            )
+          })}
+        </div>
       </div>
 
       {entries.length === 0 && (

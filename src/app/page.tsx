@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 import type { Workout } from '@/lib/types'
+import CategoryBadge from '@/components/CategoryBadge'
 
 export default function Home() {
   const router = useRouter()
@@ -90,21 +91,24 @@ export default function Home() {
                 className="flex items-center justify-between px-4 py-4 transition-colors active:bg-white/5"
                 style={{ borderTop: i === 0 ? 'none' : '1px solid var(--border)' }}
               >
-                <div>
-                  <div className="text-base font-medium">
-                    {new Date(w.date + 'T12:00:00').toLocaleDateString('en-US', {
-                      weekday: 'long',
-                      month: 'short',
-                      day: 'numeric',
-                    })}
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-base font-medium">
+                      {new Date(w.date + 'T12:00:00').toLocaleDateString('en-US', {
+                        weekday: 'long',
+                        month: 'short',
+                        day: 'numeric',
+                      })}
+                    </span>
+                    <CategoryBadge category={w.category} />
                   </div>
                   {w.notes && (
-                    <div className="text-sm mt-0.5" style={{ color: 'var(--text-secondary)' }}>
+                    <div className="text-sm mt-0.5 truncate" style={{ color: 'var(--text-secondary)' }}>
                       {w.notes}
                     </div>
                   )}
                 </div>
-                <span className="text-lg" style={{ color: 'var(--text-tertiary)' }}>›</span>
+                <span className="text-lg ml-2" style={{ color: 'var(--text-tertiary)' }}>›</span>
               </Link>
             ))}
           </div>

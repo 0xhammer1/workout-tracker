@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
 import type { Exercise } from '@/lib/types'
+import MuscleBadge from './MuscleBadge'
 
 interface ExistingSet {
   id: string
@@ -116,8 +117,11 @@ export default function ExerciseBlock({ exercise, workoutId, onRemove, onDone, i
       className="rounded-2xl p-4 mb-3 overflow-hidden"
       style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}
     >
-      <div className="flex items-center justify-between mb-1">
-        <h3 className="text-base font-semibold truncate pr-2">{exercise.name}</h3>
+      <div className="flex items-center justify-between mb-1 gap-2">
+        <div className="flex items-center gap-2 min-w-0 flex-1">
+          <h3 className="text-base font-semibold truncate">{exercise.name}</h3>
+          <MuscleBadge exerciseName={exercise.name} />
+        </div>
         <button
           onClick={onRemove}
           className="text-xs font-medium transition-opacity active:opacity-60 shrink-0"

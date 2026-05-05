@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
 import type { Exercise } from '@/lib/types'
+import MuscleBadge from './MuscleBadge'
 
 interface Props {
   onSelect: (exercise: Exercise) => void
@@ -66,10 +67,11 @@ export default function ExercisePicker({ onSelect, onClose }: Props) {
             <button
               key={ex.id}
               onClick={() => onSelect(ex)}
-              className="w-full text-left px-3 py-3.5 text-base rounded-xl transition-colors active:bg-white/5"
+              className="w-full text-left px-3 py-3.5 text-base rounded-xl transition-colors active:bg-white/5 flex items-center justify-between gap-2"
               style={{ color: 'var(--text)' }}
             >
-              {ex.name}
+              <span className="truncate">{ex.name}</span>
+              <MuscleBadge exerciseName={ex.name} />
             </button>
           ))}
           {query && filtered.length === 0 && (

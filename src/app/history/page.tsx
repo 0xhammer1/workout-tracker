@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 import type { Workout } from '@/lib/types'
 import ConfirmDialog from '@/components/ConfirmDialog'
+import CategoryBadge from '@/components/CategoryBadge'
 
 interface WorkoutSummary extends Workout {
   exerciseCount: number
@@ -129,13 +130,16 @@ export default function HistoryPage() {
               style={{ borderTop: i === 0 ? 'none' : '1px solid var(--border)' }}
             >
               <div className="flex-1 min-w-0">
-                <div className="text-base font-medium">
-                  {new Date(w.date + 'T12:00:00').toLocaleDateString('en-US', {
-                    weekday: 'long',
-                    month: 'short',
-                    day: 'numeric',
-                    year: 'numeric',
-                  })}
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-base font-medium">
+                    {new Date(w.date + 'T12:00:00').toLocaleDateString('en-US', {
+                      weekday: 'long',
+                      month: 'short',
+                      day: 'numeric',
+                      year: 'numeric',
+                    })}
+                  </span>
+                  <CategoryBadge category={w.category} />
                 </div>
                 <div className="text-sm mt-0.5" style={{ color: 'var(--text-secondary)' }}>
                   {w.exerciseCount} exercise{w.exerciseCount !== 1 ? 's' : ''} · {w.setCount} set

@@ -7,9 +7,9 @@ export type Database = {
         Update: { id?: string; name?: string }
       }
       workouts: {
-        Row: { id: string; date: string; notes: string | null; created_at: string }
-        Insert: { id?: string; date?: string; notes?: string | null }
-        Update: { id?: string; date?: string; notes?: string | null }
+        Row: { id: string; date: string; notes: string | null; category: string | null; created_at: string }
+        Insert: { id?: string; date?: string; notes?: string | null; category?: string | null }
+        Update: { id?: string; date?: string; notes?: string | null; category?: string | null }
       }
       sets: {
         Row: {
