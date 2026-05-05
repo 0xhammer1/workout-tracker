@@ -1,195 +1,314 @@
 interface Props {
   className?: string
-  hairColor?: string
-  browColor?: string
-  skinColor?: string
-  skinShade?: string
-  tankColor?: string
-  shoeColor?: string
-  shoeAccent?: string
 }
 
-// Stylized cartoon avatar — lean athletic build, bleached blonde + dark brows,
-// black muscle tank, white converse, chain necklace, mid bicep curl.
-export default function MitchellAvatar({
-  className = '',
-  hairColor = '#e8dcaa',
-  browColor = '#2a1a10',
-  skinColor = '#d9a878',
-  skinShade = '#b8845d',
-  tankColor = '#141414',
-  shoeColor = '#f5f5f0',
-  shoeAccent = '#1a1a1a',
-}: Props) {
-  const tankShade = '#0a0a0a'
-  const goldChain = '#d4b34c'
+// Stylized "character portrait" avatar — video game splash art aesthetic.
+// Bleached blonde fade, dark brows, tan skin, black tank, white converse, gold chain.
+export default function MitchellAvatar({ className = '' }: Props) {
+  // Palette
+  const skin = '#d8a071'
+  const skinMid = '#b87a4d'
+  const skinShadow = '#8b5530'
+  const skinHighlight = '#ecc395'
+  const hair = '#f0e2a8'
+  const hairShadow = '#b8a466'
+  const hairHighlight = '#fff5cc'
+  const brow = '#1a0e08'
+  const tank = '#0a0a0a'
+  const tankHighlight = '#2a2a2a'
+  const shoeWhite = '#f7f5f0'
+  const shoeRubber = '#e8e3d8'
+  const shoeBlack = '#0e0e0e'
+  const gold = '#e0c047'
+  const goldShadow = '#9a7e2c'
+  const metal = '#3d3d42'
+  const metalDark = '#1c1c20'
+  const metalLight = '#6f6f78'
+  const bgTop = '#262838'
+  const bgBottom = '#13141d'
+  const rimLight = '#7c8aff'
 
   return (
-    <svg viewBox="0 0 140 160" className={className} xmlns="http://www.w3.org/2000/svg">
-      {/* Back leg */}
-      <rect x="78" y="118" width="13" height="22" rx="5" fill={skinColor} />
-      {/* Front leg */}
-      <rect x="55" y="118" width="13" height="22" rx="5" fill={skinColor} />
-      {/* Leg shading (hint of definition) */}
-      <rect x="78" y="118" width="3" height="22" fill={skinShade} opacity="0.3" />
-      <rect x="55" y="118" width="3" height="22" fill={skinShade} opacity="0.3" />
+    <svg viewBox="0 0 200 220" className={className} xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <radialGradient id="bgGrad" cx="50%" cy="40%" r="60%">
+          <stop offset="0%" stopColor={bgTop} />
+          <stop offset="100%" stopColor={bgBottom} />
+        </radialGradient>
+        <linearGradient id="skinGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%" stopColor={skinHighlight} />
+          <stop offset="50%" stopColor={skin} />
+          <stop offset="100%" stopColor={skinMid} />
+        </linearGradient>
+        <linearGradient id="hairGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stopColor={hairHighlight} />
+          <stop offset="60%" stopColor={hair} />
+          <stop offset="100%" stopColor={hairShadow} />
+        </linearGradient>
+        <linearGradient id="tankGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%" stopColor={tankHighlight} />
+          <stop offset="50%" stopColor={tank} />
+          <stop offset="100%" stopColor="#000" />
+        </linearGradient>
+        <linearGradient id="goldGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stopColor="#fce58a" />
+          <stop offset="100%" stopColor={goldShadow} />
+        </linearGradient>
+        <radialGradient id="shoeGrad" cx="50%" cy="30%" r="80%">
+          <stop offset="0%" stopColor={shoeWhite} />
+          <stop offset="100%" stopColor={shoeRubber} />
+        </radialGradient>
+        <filter id="softShadow" x="-20%" y="-20%" width="140%" height="140%">
+          <feGaussianBlur in="SourceAlpha" stdDeviation="2" />
+          <feOffset dx="0" dy="2" result="offsetblur" />
+          <feComponentTransfer>
+            <feFuncA type="linear" slope="0.5" />
+          </feComponentTransfer>
+          <feMerge>
+            <feMergeNode />
+            <feMergeNode in="SourceGraphic" />
+          </feMerge>
+        </filter>
+      </defs>
 
-      {/* White Converse — back */}
-      <rect x="74" y="138" width="20" height="9" rx="3" fill={shoeColor} />
-      <rect x="74" y="146" width="20" height="3" fill={shoeAccent} />
-      <circle cx="78" cy="143" r="0.8" fill={shoeAccent} />
-      <circle cx="82" cy="143" r="0.8" fill={shoeAccent} />
-      <circle cx="86" cy="143" r="0.8" fill={shoeAccent} />
-      <circle cx="90" cy="143" r="0.8" fill={shoeAccent} />
-      <circle cx="92" cy="143" r="2" fill={shoeColor} stroke={shoeAccent} strokeWidth="0.6" />
+      {/* Background — character select feel */}
+      <circle cx="100" cy="100" r="98" fill="url(#bgGrad)" />
+      {/* Rim light glow */}
+      <circle cx="100" cy="100" r="98" fill="none" stroke={rimLight} strokeWidth="0.6" opacity="0.4" />
 
-      {/* White Converse — front */}
-      <rect x="51" y="138" width="20" height="9" rx="3" fill={shoeColor} />
-      <rect x="51" y="146" width="20" height="3" fill={shoeAccent} />
-      <circle cx="55" cy="143" r="0.8" fill={shoeAccent} />
-      <circle cx="59" cy="143" r="0.8" fill={shoeAccent} />
-      <circle cx="63" cy="143" r="0.8" fill={shoeAccent} />
-      <circle cx="67" cy="143" r="0.8" fill={shoeAccent} />
-      <circle cx="69" cy="143" r="2" fill={shoeColor} stroke={shoeAccent} strokeWidth="0.6" />
+      {/* === LEGS === */}
+      {/* Back leg (right) */}
+      <path d="M 110 162 Q 109 175 113 192 L 124 192 Q 124 178 122 162 Z" fill="url(#skinGrad)" />
+      <path d="M 119 162 L 124 192 L 122 162 Z" fill={skinShadow} opacity="0.4" />
 
-      {/* Torso — black tank, leaner silhouette */}
+      {/* Front leg (left) */}
+      <path d="M 78 162 Q 77 175 81 192 L 92 192 Q 92 178 90 162 Z" fill="url(#skinGrad)" />
+      <path d="M 87 162 L 92 192 L 90 162 Z" fill={skinShadow} opacity="0.4" />
+
+      {/* Knee highlight */}
+      <ellipse cx="84" cy="178" rx="3" ry="2" fill={skinHighlight} opacity="0.6" />
+      <ellipse cx="116" cy="178" rx="3" ry="2" fill={skinHighlight} opacity="0.6" />
+
+      {/* === CONVERSE — back === */}
       <path
-        d="M 52 68 Q 50 74 50 82 L 50 118 Q 50 122 54 122 L 92 122 Q 96 122 96 118 L 96 82 Q 96 74 94 68 Z"
-        fill={tankColor}
+        d="M 108 188 Q 108 198 112 200 L 132 200 Q 130 196 128 192 L 124 192 L 110 192 Z"
+        fill="url(#shoeGrad)"
       />
-      {/* Tank shading */}
-      <path d="M 88 72 L 90 118 L 96 118 L 96 82 Q 96 74 94 68 Z" fill={tankShade} opacity="0.7" />
+      <rect x="108" y="198" width="24" height="3" fill={shoeBlack} />
+      <path d="M 108 192 L 132 192 L 130 195 L 110 195 Z" fill={shoeBlack} />
+      {/* Eyelets */}
+      <circle cx="114" cy="194" r="0.7" fill={shoeBlack} />
+      <circle cx="118" cy="194" r="0.7" fill={shoeBlack} />
+      <circle cx="122" cy="194" r="0.7" fill={shoeBlack} />
+      <circle cx="126" cy="194" r="0.7" fill={shoeBlack} />
+      {/* Star/circle logo */}
+      <circle cx="129" cy="196" r="2.2" fill={shoeWhite} stroke={shoeBlack} strokeWidth="0.5" />
 
-      {/* Tank deep V neckline showing chest skin */}
+      {/* === CONVERSE — front === */}
       <path
-        d="M 56 68 Q 60 60 70 60 Q 80 60 90 68 L 86 68 Q 80 64 73 70 L 73 80 L 70 84 L 67 80 L 67 70 Q 60 64 60 68 Z"
-        fill={skinColor}
+        d="M 76 188 Q 76 198 80 200 L 100 200 Q 98 196 96 192 L 92 192 L 78 192 Z"
+        fill="url(#shoeGrad)"
       />
-      {/* Subtle ab definition hint */}
-      <line x1="70" y1="78" x2="70" y2="84" stroke={skinShade} strokeWidth="0.6" opacity="0.5" />
+      <rect x="76" y="198" width="24" height="3" fill={shoeBlack} />
+      <path d="M 76 192 L 100 192 L 98 195 L 78 195 Z" fill={shoeBlack} />
+      <circle cx="82" cy="194" r="0.7" fill={shoeBlack} />
+      <circle cx="86" cy="194" r="0.7" fill={shoeBlack} />
+      <circle cx="90" cy="194" r="0.7" fill={shoeBlack} />
+      <circle cx="94" cy="194" r="0.7" fill={shoeBlack} />
+      <circle cx="97" cy="196" r="2.2" fill={shoeWhite} stroke={shoeBlack} strokeWidth="0.5" />
 
-      {/* Shoulders / arm openings showing skin */}
-      <ellipse cx="50" cy="72" rx="4" ry="6" fill={skinColor} />
-      <ellipse cx="96" cy="72" rx="4" ry="6" fill={skinColor} />
-
-      {/* Chain necklace */}
+      {/* === TORSO — black tank, dramatic shading === */}
       <path
-        d="M 60 64 Q 70 70 80 64"
-        stroke={goldChain}
-        strokeWidth="1.4"
+        d="M 76 92 Q 73 100 73 110 L 73 162 Q 73 167 78 167 L 124 167 Q 129 167 129 162 L 129 110 Q 129 100 126 92 Z"
+        fill="url(#tankGrad)"
+      />
+      {/* Tank fold/wrinkle highlight */}
+      <path
+        d="M 90 100 Q 88 130 92 160"
+        stroke={tankHighlight}
+        strokeWidth="0.8"
         fill="none"
-        strokeLinecap="round"
+        opacity="0.6"
       />
-      <circle cx="70" cy="69" r="1.2" fill={goldChain} />
+      <path
+        d="M 110 100 Q 112 130 108 160"
+        stroke={tankHighlight}
+        strokeWidth="0.8"
+        fill="none"
+        opacity="0.4"
+      />
+      {/* Tank rim light along right edge */}
+      <path d="M 126 92 Q 129 100 129 110 L 129 162 Q 128 165 125 165" stroke={rimLight} strokeWidth="0.8" fill="none" opacity="0.4" />
 
-      {/* Right arm — flexed up curling dumbbell */}
-      <rect x="92" y="68" width="10" height="20" rx="5" fill={skinColor} />
-      <rect x="92" y="48" width="10" height="22" rx="5" fill={skinColor} />
-      {/* Bicep peak (definition) */}
-      <ellipse cx="97" cy="64" rx="5.5" ry="4.2" fill={skinShade} opacity="0.55" />
-      {/* Forearm shading */}
-      <ellipse cx="97" cy="58" rx="3" ry="6" fill={skinShade} opacity="0.25" />
+      {/* Deep V neckline — exposed chest */}
+      <path
+        d="M 82 92 Q 88 80 100 80 Q 112 80 118 92 L 113 92 Q 108 84 102 92 L 102 108 L 100 112 L 98 108 L 98 92 Q 92 84 87 92 Z"
+        fill="url(#skinGrad)"
+      />
+      {/* Chest definition */}
+      <path d="M 92 88 Q 96 96 100 96 Q 104 96 108 88" stroke={skinMid} strokeWidth="0.8" fill="none" opacity="0.5" />
+      <line x1="100" y1="96" x2="100" y2="112" stroke={skinShadow} strokeWidth="0.8" opacity="0.6" />
+      {/* Subtle ab hint */}
+      <ellipse cx="100" cy="116" rx="3" ry="2" fill={skinHighlight} opacity="0.3" />
+
+      {/* Arm holes — shoulder skin */}
+      <ellipse cx="73" cy="98" rx="5" ry="8" fill="url(#skinGrad)" />
+      <ellipse cx="129" cy="98" rx="5" ry="8" fill="url(#skinGrad)" />
+
+      {/* === GOLD CHAIN === */}
+      <path d="M 86 86 Q 100 96 114 86" stroke="url(#goldGrad)" strokeWidth="2" fill="none" strokeLinecap="round" />
+      <circle cx="100" cy="93" r="2" fill="url(#goldGrad)" stroke={goldShadow} strokeWidth="0.4" />
+      <circle cx="100.5" cy="92.5" r="0.6" fill="#fff5b8" />
+
+      {/* === LEFT ARM (relaxed) === */}
+      <path d="M 64 92 Q 62 110 64 138 L 74 138 Q 76 110 73 92 Z" fill="url(#skinGrad)" />
+      {/* Bicep shadow */}
+      <ellipse cx="68" cy="108" rx="4" ry="9" fill={skinShadow} opacity="0.35" />
+      {/* Bicep highlight */}
+      <ellipse cx="71" cy="105" rx="2" ry="6" fill={skinHighlight} opacity="0.6" />
+      {/* Forearm */}
+      <ellipse cx="68" cy="130" rx="4" ry="6" fill={skinMid} opacity="0.3" />
       {/* Hand */}
-      <circle cx="97" cy="46" r="5.5" fill={skinColor} />
+      <ellipse cx="69" cy="142" rx="6" ry="6.5" fill="url(#skinGrad)" />
 
-      {/* Dumbbell */}
-      <rect x="89" y="40" width="16" height="3" rx="1" fill="#3a3a3a" />
-      <rect x="85" y="36" width="6" height="11" rx="1.5" fill="#1a1a1a" />
-      <rect x="103" y="36" width="6" height="11" rx="1.5" fill="#1a1a1a" />
+      {/* === RIGHT ARM (curling, flexed) === */}
+      {/* Upper arm */}
+      <path d="M 126 92 Q 124 105 126 118 L 138 118 Q 138 105 135 92 Z" fill="url(#skinGrad)" />
+      {/* Forearm bent up */}
+      <path d="M 126 64 Q 125 80 128 92 L 138 92 Q 138 80 138 64 Z" fill="url(#skinGrad)" />
+      {/* Bicep peak — dramatic flex */}
+      <ellipse cx="132" cy="92" rx="9" ry="7" fill="url(#skinGrad)" />
+      <ellipse cx="130" cy="89" rx="6" ry="4" fill={skinHighlight} opacity="0.7" />
+      <path d="M 124 96 Q 132 98 140 96" stroke={skinShadow} strokeWidth="1" fill="none" opacity="0.6" />
+      {/* Forearm definition */}
+      <path d="M 130 70 Q 132 80 130 90" stroke={skinShadow} strokeWidth="0.6" fill="none" opacity="0.5" />
+      <path d="M 134 70 Q 136 80 134 90" stroke={skinHighlight} strokeWidth="0.6" fill="none" opacity="0.6" />
+      {/* Hand gripping */}
+      <ellipse cx="133" cy="60" r="6.5" fill="url(#skinGrad)" rx="6.5" ry="6" />
+      <path d="M 128 60 L 138 60" stroke={skinShadow} strokeWidth="0.6" opacity="0.5" />
 
-      {/* Left arm — relaxed at side */}
-      <rect x="44" y="68" width="10" height="34" rx="5" fill={skinColor} />
-      <ellipse cx="49" cy="80" rx="4" ry="6" fill={skinShade} opacity="0.3" />
-      {/* Hand */}
-      <circle cx="49" cy="104" r="5" fill={skinColor} />
+      {/* === DUMBBELL === */}
+      <rect x="124" y="51" width="20" height="4" rx="1" fill={metal} />
+      <rect x="124" y="51" width="20" height="1.5" fill={metalLight} />
+      {/* Knurling */}
+      <line x1="126" y1="55" x2="126" y2="51" stroke={metalDark} strokeWidth="0.4" />
+      <line x1="129" y1="55" x2="129" y2="51" stroke={metalDark} strokeWidth="0.4" />
+      <line x1="139" y1="55" x2="139" y2="51" stroke={metalDark} strokeWidth="0.4" />
+      <line x1="142" y1="55" x2="142" y2="51" stroke={metalDark} strokeWidth="0.4" />
+      {/* Plates */}
+      <rect x="118" y="44" width="8" height="18" rx="2" fill={metalDark} />
+      <rect x="118" y="44" width="3" height="18" fill={metalLight} opacity="0.5" />
+      <rect x="142" y="44" width="8" height="18" rx="2" fill={metalDark} />
+      <rect x="146" y="44" width="2" height="18" fill={metalLight} opacity="0.4" />
 
-      {/* Neck */}
-      <rect x="65" y="48" width="10" height="12" fill={skinColor} />
-      <rect x="65" y="48" width="10" height="3" fill={skinShade} opacity="0.3" />
+      {/* === NECK === */}
+      <path d="M 92 66 L 92 80 Q 92 84 96 84 L 104 84 Q 108 84 108 80 L 108 66 Z" fill="url(#skinGrad)" />
+      {/* Neck shadow */}
+      <path d="M 92 80 Q 100 84 108 80 L 108 84 Q 100 86 92 84 Z" fill={skinShadow} opacity="0.4" />
 
-      {/* Head — slightly angular jaw */}
+      {/* === HEAD === */}
       <path
-        d="M 52 32 Q 52 16 70 14 Q 88 16 88 32 L 88 42 Q 88 52 80 56 Q 75 58 70 58 Q 65 58 60 56 Q 52 52 52 42 Z"
-        fill={skinColor}
+        d="M 76 44 Q 76 24 100 22 Q 124 24 124 44 L 124 58 Q 124 70 116 76 Q 108 80 100 80 Q 92 80 84 76 Q 76 70 76 58 Z"
+        fill="url(#skinGrad)"
+        filter="url(#softShadow)"
       />
-      {/* Jaw shadow */}
-      <path
-        d="M 60 54 Q 65 58 70 58 Q 75 58 80 54 L 80 50 Q 75 53 70 53 Q 65 53 60 50 Z"
-        fill={skinShade}
-        opacity="0.25"
-      />
 
-      {/* Hair — bleached short fade, thicker on top */}
-      {/* Sides (faded) */}
-      <path d="M 52 30 Q 52 22 56 18 L 56 32 Q 53 32 52 30 Z" fill={browColor} opacity="0.6" />
-      <path d="M 88 30 Q 88 22 84 18 L 84 32 Q 87 32 88 30 Z" fill={browColor} opacity="0.6" />
-      {/* Top hair */}
+      {/* Jaw shading */}
       <path
-        d="M 53 28 Q 54 12 70 10 Q 86 12 87 28 Q 84 18 78 16 Q 72 15 68 18 Q 62 22 56 24 Q 53 26 53 28 Z"
-        fill={hairColor}
+        d="M 84 72 Q 92 78 100 78 Q 108 78 116 72 L 116 66 Q 108 72 100 72 Q 92 72 84 66 Z"
+        fill={skinShadow}
+        opacity="0.3"
       />
-      {/* Hair texture strands */}
+      {/* Cheekbone highlight */}
+      <ellipse cx="86" cy="56" rx="3" ry="4" fill={skinHighlight} opacity="0.5" />
+      <ellipse cx="114" cy="56" rx="3" ry="4" fill={skinHighlight} opacity="0.5" />
+
+      {/* === HAIR === */}
+      {/* Faded sides */}
+      <path d="M 76 42 Q 75 32 80 26 L 82 44 Q 78 44 76 42 Z" fill={brow} opacity="0.55" />
+      <path d="M 124 42 Q 125 32 120 26 L 118 44 Q 122 44 124 42 Z" fill={brow} opacity="0.55" />
+
+      {/* Top — bleached blonde with volume */}
       <path
-        d="M 60 16 Q 64 12 70 11 Q 76 12 80 16"
-        stroke={hairColor}
+        d="M 76 38 Q 76 18 100 14 Q 124 18 124 38 Q 122 24 116 20 Q 108 16 100 18 Q 92 16 84 22 Q 78 28 76 38 Z"
+        fill="url(#hairGrad)"
+      />
+      {/* Hair strands / streaks */}
+      <path d="M 88 22 Q 92 18 98 18" stroke={hairHighlight} strokeWidth="1.5" fill="none" strokeLinecap="round" opacity="0.9" />
+      <path d="M 102 18 Q 108 18 114 22" stroke={hairHighlight} strokeWidth="1.5" fill="none" strokeLinecap="round" opacity="0.9" />
+      <path d="M 96 16 L 98 24" stroke={hairShadow} strokeWidth="0.8" opacity="0.5" />
+      <path d="M 104 16 L 102 24" stroke={hairShadow} strokeWidth="0.8" opacity="0.5" />
+      {/* Front fringe shadow */}
+      <path d="M 84 28 Q 90 32 100 30 Q 110 32 116 28 L 116 36 Q 100 40 84 36 Z" fill={hairShadow} opacity="0.3" />
+
+      {/* === EARS === */}
+      <ellipse cx="76" cy="50" rx="3" ry="5" fill="url(#skinGrad)" />
+      <ellipse cx="124" cy="50" rx="3" ry="5" fill="url(#skinGrad)" />
+      <path d="M 75 50 Q 76 52 76 54" stroke={skinShadow} strokeWidth="0.4" fill="none" opacity="0.5" />
+      {/* Earring */}
+      <circle cx="76" cy="54" r="1.2" fill="url(#goldGrad)" />
+
+      {/* === EYEBROWS — bold, expressive === */}
+      <path
+        d="M 84 44 Q 90 40 96 44"
+        stroke={brow}
         strokeWidth="3"
         fill="none"
         strokeLinecap="round"
       />
-      <path d="M 66 13 L 68 19" stroke="#d4c082" strokeWidth="0.8" opacity="0.6" />
-      <path d="M 73 13 L 71 19" stroke="#d4c082" strokeWidth="0.8" opacity="0.6" />
-
-      {/* Hairline — short crop visible at temples */}
-      <path d="M 56 28 Q 58 26 62 26" stroke={hairColor} strokeWidth="1.2" fill="none" />
-      <path d="M 84 28 Q 82 26 78 26" stroke={hairColor} strokeWidth="1.2" fill="none" />
-
-      {/* Ears */}
-      <ellipse cx="52" cy="38" rx="2.5" ry="4" fill={skinColor} />
-      <ellipse cx="88" cy="38" rx="2.5" ry="4" fill={skinColor} />
-      {/* Earring stud */}
-      <circle cx="52" cy="41" r="0.8" fill={goldChain} />
-
-      {/* Eyebrows — thick, dark */}
       <path
-        d="M 58 32 Q 63 30 68 32"
-        stroke={browColor}
-        strokeWidth="2.2"
+        d="M 104 44 Q 110 40 116 44"
+        stroke={brow}
+        strokeWidth="3"
         fill="none"
         strokeLinecap="round"
       />
+      {/* Brow shading underneath */}
+      <path d="M 86 45 Q 90 43 94 45" stroke={skinShadow} strokeWidth="1.5" fill="none" opacity="0.4" />
+      <path d="M 106 45 Q 110 43 114 45" stroke={skinShadow} strokeWidth="1.5" fill="none" opacity="0.4" />
+
+      {/* === EYES === */}
+      {/* Eye whites */}
+      <ellipse cx="90" cy="51" rx="3.5" ry="2.5" fill="#fff" />
+      <ellipse cx="110" cy="51" rx="3.5" ry="2.5" fill="#fff" />
+      {/* Iris */}
+      <ellipse cx="90" cy="51" rx="2.2" ry="2.4" fill="#5a3a1f" />
+      <ellipse cx="110" cy="51" rx="2.2" ry="2.4" fill="#5a3a1f" />
+      {/* Pupil */}
+      <circle cx="90" cy="51" r="1.1" fill={brow} />
+      <circle cx="110" cy="51" r="1.1" fill={brow} />
+      {/* Shine */}
+      <circle cx="91" cy="50" r="0.7" fill="#fff" />
+      <circle cx="111" cy="50" r="0.7" fill="#fff" />
+      {/* Lash line */}
+      <path d="M 87 49 Q 90 48 93 49" stroke={brow} strokeWidth="0.7" fill="none" />
+      <path d="M 107 49 Q 110 48 113 49" stroke={brow} strokeWidth="0.7" fill="none" />
+
+      {/* === NOSE — subtle === */}
+      <path d="M 99 56 Q 100 62 102 64" stroke={skinShadow} strokeWidth="0.8" fill="none" opacity="0.4" />
+      <ellipse cx="101" cy="64" rx="0.6" ry="0.4" fill={skinShadow} opacity="0.5" />
+
+      {/* === SMIRK / CONFIDENT SMILE === */}
       <path
-        d="M 72 32 Q 77 30 82 32"
-        stroke={browColor}
-        strokeWidth="2.2"
+        d="M 92 70 Q 100 74 108 70"
+        stroke={brow}
+        strokeWidth="1.6"
         fill="none"
         strokeLinecap="round"
       />
+      {/* Lip shadow */}
+      <path d="M 94 71 Q 100 73 106 71" stroke="#a8694a" strokeWidth="0.8" fill="none" opacity="0.5" />
 
-      {/* Eyes */}
-      <ellipse cx="63" cy="37" rx="1.8" ry="2" fill="#3b2615" />
-      <ellipse cx="77" cy="37" rx="1.8" ry="2" fill="#3b2615" />
-      <circle cx="63.6" cy="36.5" r="0.6" fill="white" />
-      <circle cx="77.6" cy="36.5" r="0.6" fill="white" />
+      {/* Cheek warmth */}
+      <ellipse cx="84" cy="64" rx="3" ry="1.8" fill="#d2755a" opacity="0.3" />
+      <ellipse cx="116" cy="64" rx="3" ry="1.8" fill="#d2755a" opacity="0.3" />
 
-      {/* Smile — confident */}
-      <path
-        d="M 64 46 Q 70 50 76 46"
-        stroke={browColor}
-        strokeWidth="1.4"
-        fill="none"
-        strokeLinecap="round"
-      />
+      {/* Sweat drop with shine */}
+      <path d="M 60 44 Q 58 48 60 51 Q 62 48 60 44" fill="#7dd3fc" />
+      <ellipse cx="60.6" cy="46" rx="0.5" ry="1" fill="#fff" opacity="0.9" />
 
-      {/* Subtle cheek warmth */}
-      <ellipse cx="58" cy="43" rx="2.5" ry="1.4" fill="#d68a6a" opacity="0.35" />
-      <ellipse cx="82" cy="43" rx="2.5" ry="1.4" fill="#d68a6a" opacity="0.35" />
-
-      {/* Sweat drop (effort!) */}
-      <path
-        d="M 38 32 Q 36 35 38 38 Q 40 35 38 32"
-        fill="#7dd3fc"
-        opacity="0.8"
-      />
+      {/* Rim light on hair (top) */}
+      <path d="M 80 22 Q 100 14 120 22" stroke={rimLight} strokeWidth="0.6" fill="none" opacity="0.5" />
     </svg>
   )
 }

@@ -1,6 +1,16 @@
 import { supabase } from './supabase'
 import { CATEGORIES, type Category } from './categories'
+import { muscleForExercise, type MuscleGroup } from './muscleGroups'
 import type { Exercise } from './types'
+
+// Map workout categories → muscle groups they typically train
+const CATEGORY_MUSCLE_GROUPS: Record<Category, MuscleGroup[]> = {
+  push: ['chest', 'shoulders', 'triceps'],
+  pull: ['back', 'biceps'],
+  legs: ['legs', 'glutes'],
+  posterior: ['glutes', 'back'],
+  anterior: ['chest', 'shoulders', 'core', 'legs'],
+}
 
 export interface Suggestion {
   category: Category
@@ -73,7 +83,7 @@ export async function suggestWorkout(): Promise<Suggestion> {
         : `Last ${oldest} day was ${daysAgo} day${daysAgo === 1 ? '' : 's'} ago.`
   }
 
-  // Find the most recent workout of the suggested category and pull its exercises
+  // Try to copy exercises from the most recent workout of the suggested category
   const lastWorkoutOfCategory = workouts.find((w) => w.category === suggested)
   let exercises: Exercise[] = []
 
@@ -91,6 +101,29 @@ export async function suggestWorkout(): Promise<Suggestion> {
         exercises.push(ex)
       }
     }
+  }
+
+  // Fallback: if no past workout of this category, suggest the user's most-used
+  // exercises that match the muscle groups for this category.
+  if (exercises.length === 0) {
+    const targetGroups = new Set<string>(CATEGORY_MUSCLE_GROUPS[suggested])
+    const { data: allSets } = await supabase
+      .from('sets')
+      .select('exercise_id, exercises!inner(id, name, muscle_group, created_at)')
+
+    const counts = new Map<string, { ex: Exercise; count: number }>()
+    for (const row of (allSets ?? []) as unknown as SetRowWithExercise[]) {
+      const ex = row.exercises
+      const m = muscleForExercise(ex)
+      if (!targetGroups.has(m.group)) continue
+      const entry = counts.get(ex.id)
+      if (entry) entry.count += 1
+      else counts.set(ex.id, { ex, count: 1 })
+    }
+    exercises = Array.from(counts.values())
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 5)
+      .map((v) => v.ex)
   }
 
   return { category: suggested, reason, exercises }

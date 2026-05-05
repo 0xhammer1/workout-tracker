@@ -102,8 +102,8 @@ export default function ProfilePage() {
 
   return (
     <div>
-      <header className="pt-8 pb-6 flex items-end gap-4">
-        <MitchellAvatar className="w-24 h-28 -mb-1" />
+      <header className="pt-8 pb-6 flex items-center gap-4">
+        <MitchellAvatar className="w-28 h-28" />
         <div>
           <p className="text-sm font-medium" style={{ color: 'var(--text-secondary)' }}>
             Profile
