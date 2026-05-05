@@ -8,6 +8,7 @@ import type { Exercise, Workout } from '@/lib/types'
 import ExerciseBlock from '@/components/ExerciseBlock'
 import ExerciseSummary from '@/components/ExerciseSummary'
 import ExercisePicker from '@/components/ExercisePicker'
+import ConfirmDialog from '@/components/ConfirmDialog'
 import { CATEGORIES, CATEGORY_LABELS, CATEGORY_COLORS, type Category } from '@/lib/categories'
 
 function fireworks() {
@@ -65,6 +66,7 @@ export default function WorkoutPage({ params }: { params: Promise<{ id: string }
   const [category, setCategory] = useState<Category | ''>('')
   const [saving, setSaving] = useState(false)
   const [loading, setLoading] = useState(true)
+  const [confirmDelete, setConfirmDelete] = useState(false)
 
   useEffect(() => {
     async function load() {
@@ -179,6 +181,12 @@ export default function WorkoutPage({ params }: { params: Promise<{ id: string }
   async function setWorkoutCategory(c: Category | '') {
     setCategory(c)
     await supabase.from('workouts').update({ category: c || null }).eq('id', id)
+  }
+
+  async function deleteWorkout() {
+    await supabase.from('workouts').delete().eq('id', id)
+    sessionStorage.removeItem('freshWorkoutId')
+    router.push('/history')
   }
 
   async function finishWorkout() {
@@ -316,11 +324,35 @@ export default function WorkoutPage({ params }: { params: Promise<{ id: string }
         value={notes}
         onChange={(e) => setNotes(e.target.value)}
         rows={2}
-        className="w-full px-4 py-3 text-sm rounded-2xl outline-none resize-none"
+        className="w-full px-4 py-3 text-sm rounded-2xl outline-none resize-none mb-6"
         style={{ background: 'var(--surface)', color: 'var(--text)', border: '1px solid var(--border)' }}
       />
 
+      <div className="flex justify-center">
+        <button
+          onClick={() => setConfirmDelete(true)}
+          className="px-5 py-2 text-sm font-semibold rounded-full transition-opacity active:opacity-60"
+          style={{
+            background: 'rgba(239, 68, 68, 0.1)',
+            color: 'var(--danger)',
+            border: '1px solid rgba(239, 68, 68, 0.25)',
+          }}
+        >
+          Delete workout
+        </button>
+      </div>
+
       {showPicker && <ExercisePicker onSelect={addExercise} onClose={() => setShowPicker(false)} />}
+
+      <ConfirmDialog
+        open={confirmDelete}
+        title="Delete this workout?"
+        message="This will remove all exercises and sets logged. Cannot be undone."
+        confirmLabel="Delete"
+        destructive
+        onConfirm={deleteWorkout}
+        onCancel={() => setConfirmDelete(false)}
+      />
     </div>
   )
 }
