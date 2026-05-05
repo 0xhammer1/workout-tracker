@@ -81,7 +81,7 @@ export default function Home() {
         className="w-full font-semibold text-base py-4 rounded-2xl transition-all active:scale-[0.98] disabled:opacity-60 mb-6"
         style={{ background: 'var(--accent)', color: 'white' }}
       >
-        {starting ? 'Starting…' : 'Start Empty Workout'}
+        {starting ? 'Starting…' : 'Build Your Own Workout'}
       </button>
 
       {suggestion && (
