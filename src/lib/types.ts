@@ -2,9 +2,9 @@ export type Database = {
   public: {
     Tables: {
       exercises: {
-        Row: { id: string; name: string; created_at: string }
-        Insert: { id?: string; name: string; created_at?: string }
-        Update: { id?: string; name?: string }
+        Row: { id: string; name: string; muscle_group: string | null; created_at: string }
+        Insert: { id?: string; name: string; muscle_group?: string | null; created_at?: string }
+        Update: { id?: string; name?: string; muscle_group?: string | null }
       }
       workouts: {
         Row: { id: string; date: string; notes: string | null; category: string | null; created_at: string }

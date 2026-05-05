@@ -28,6 +28,14 @@ const INFO: Record<MuscleGroup, MuscleInfo> = {
   other:     { group: 'other',     label: 'Other',     color: '#cbd5e1', bg: 'rgba(148, 163, 184, 0.15)' },
 }
 
+export const ALL_MUSCLE_GROUPS: MuscleGroup[] = [
+  'chest', 'back', 'shoulders', 'biceps', 'triceps', 'legs', 'glutes', 'core', 'other',
+]
+
+export function infoFor(group: MuscleGroup): MuscleInfo {
+  return INFO[group]
+}
+
 export function muscleFor(exerciseName: string): MuscleInfo {
   const n = exerciseName.toLowerCase()
 
@@ -42,4 +50,11 @@ export function muscleFor(exerciseName: string): MuscleInfo {
   if (/(press|shoulder)/i.test(n)) return INFO.shoulders
 
   return INFO.other
+}
+
+export function muscleForExercise(ex: { name: string; muscle_group?: string | null }): MuscleInfo {
+  if (ex.muscle_group && ex.muscle_group in INFO) {
+    return INFO[ex.muscle_group as MuscleGroup]
+  }
+  return muscleFor(ex.name)
 }

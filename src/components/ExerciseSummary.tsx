@@ -10,20 +10,20 @@ interface SetData {
 }
 
 interface Props {
-  name: string
+  exercise: { name: string; muscle_group?: string | null }
   sets: SetData[]
   onEdit: () => void
 }
 
-export default function ExerciseSummary({ name, sets, onEdit }: Props) {
+export default function ExerciseSummary({ exercise, sets, onEdit }: Props) {
   const sortedSets = [...sets].sort((a, b) => a.set_number - b.set_number)
 
   return (
     <div className="rounded-2xl p-5 mb-3" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
       <div className="flex items-center justify-between mb-4 gap-2">
         <div className="flex items-center gap-2 min-w-0 flex-1">
-          <h3 className="text-lg font-semibold truncate">{name}</h3>
-          <MuscleBadge exerciseName={name} />
+          <h3 className="text-lg font-semibold truncate">{exercise.name}</h3>
+          <MuscleBadge exercise={exercise} />
         </div>
         <button
           onClick={onEdit}
@@ -40,8 +40,8 @@ export default function ExerciseSummary({ name, sets, onEdit }: Props) {
         <>
           <div className="grid grid-cols-[2.5rem_1fr_1fr] gap-3 text-xs font-medium mb-2" style={{ color: 'var(--text-tertiary)' }}>
             <span>Set</span>
-            <span className="text-center">Reps</span>
             <span className="text-center">Lbs</span>
+            <span className="text-center">Reps</span>
           </div>
           {sortedSets.map((s, i) => (
             <div
@@ -52,8 +52,8 @@ export default function ExerciseSummary({ name, sets, onEdit }: Props) {
               <span className="text-base font-semibold text-center" style={{ color: 'var(--text-secondary)' }}>
                 {i + 1}
               </span>
-              <span className="text-base text-center font-medium">{s.reps ?? '—'}</span>
               <span className="text-base text-center font-medium">{s.weight ?? '—'}</span>
+              <span className="text-base text-center font-medium">{s.reps ?? '—'}</span>
             </div>
           ))}
         </>

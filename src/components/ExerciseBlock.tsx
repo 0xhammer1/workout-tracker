@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
 import type { Exercise } from '@/lib/types'
 import MuscleBadge from './MuscleBadge'
+import MuscleGroupPicker from './MuscleGroupPicker'
 
 interface ExistingSet {
   id: string
@@ -30,6 +31,8 @@ interface SetRow {
 export default function ExerciseBlock({ exercise, workoutId, onRemove, onDone, initialSets }: Props) {
   const [sets, setSets] = useState<SetRow[]>([])
   const [lastWeight, setLastWeight] = useState<number | null>(null)
+  const [muscleGroup, setMuscleGroup] = useState<string | null>(exercise.muscle_group ?? null)
+  const [showMusclePicker, setShowMusclePicker] = useState(false)
 
   useEffect(() => {
     if (initialSets && initialSets.length > 0) {
@@ -120,7 +123,10 @@ export default function ExerciseBlock({ exercise, workoutId, onRemove, onDone, i
       <div className="flex items-center justify-between mb-1 gap-2">
         <div className="flex items-center gap-2 min-w-0 flex-1">
           <h3 className="text-base font-semibold truncate">{exercise.name}</h3>
-          <MuscleBadge exerciseName={exercise.name} />
+          <MuscleBadge
+            exercise={{ name: exercise.name, muscle_group: muscleGroup }}
+            onClick={() => setShowMusclePicker(true)}
+          />
         </div>
         <button
           onClick={onRemove}
@@ -131,6 +137,18 @@ export default function ExerciseBlock({ exercise, workoutId, onRemove, onDone, i
         </button>
       </div>
 
+      <MuscleGroupPicker
+        open={showMusclePicker}
+        exerciseName={exercise.name}
+        current={muscleGroup}
+        onSelect={async (g) => {
+          setMuscleGroup(g)
+          setShowMusclePicker(false)
+          await supabase.from('exercises').update({ muscle_group: g }).eq('id', exercise.id)
+        }}
+        onClose={() => setShowMusclePicker(false)}
+      />
+
       {lastWeight !== null && (
         <p className="text-xs mb-3" style={{ color: 'var(--text-tertiary)' }}>
           Last session: {lastWeight} lbs
@@ -140,8 +158,8 @@ export default function ExerciseBlock({ exercise, workoutId, onRemove, onDone, i
 
       <div className="grid grid-cols-[1.75rem_1fr_1fr_1.5rem] gap-2 text-xs font-medium mb-2" style={{ color: 'var(--text-tertiary)' }}>
         <span>Set</span>
-        <span className="text-center">Reps</span>
         <span className="text-center">Lbs</span>
+        <span className="text-center">Reps</span>
         <span></span>
       </div>
 
@@ -152,11 +170,11 @@ export default function ExerciseBlock({ exercise, workoutId, onRemove, onDone, i
           </span>
           <input
             type="number"
-            inputMode="numeric"
+            inputMode="decimal"
             placeholder="—"
-            value={row.reps}
-            onChange={(e) => updateSet(i, 'reps', e.target.value)}
-            onBlur={(e) => saveSetWithValues(i, e.target.value, row.weight)}
+            value={row.weight}
+            onChange={(e) => updateSet(i, 'weight', e.target.value)}
+            onBlur={(e) => saveSetWithValues(i, row.reps, e.target.value)}
             className="w-full min-w-0 px-2 py-2.5 text-center text-base font-medium rounded-lg outline-none transition-colors"
             style={{
               background: 'var(--surface-elevated)',
@@ -166,11 +184,11 @@ export default function ExerciseBlock({ exercise, workoutId, onRemove, onDone, i
           />
           <input
             type="number"
-            inputMode="decimal"
+            inputMode="numeric"
             placeholder="—"
-            value={row.weight}
-            onChange={(e) => updateSet(i, 'weight', e.target.value)}
-            onBlur={(e) => saveSetWithValues(i, row.reps, e.target.value)}
+            value={row.reps}
+            onChange={(e) => updateSet(i, 'reps', e.target.value)}
+            onBlur={(e) => saveSetWithValues(i, e.target.value, row.weight)}
             className="w-full min-w-0 px-2 py-2.5 text-center text-base font-medium rounded-lg outline-none transition-colors"
             style={{
               background: 'var(--surface-elevated)',

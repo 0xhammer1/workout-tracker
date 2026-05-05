@@ -79,7 +79,7 @@ export default function WorkoutPage({ params }: { params: Promise<{ id: string }
 
       const { data: setsRaw } = await supabase
         .from('sets')
-        .select('id, set_number, reps, weight, exercise_id, exercises!inner(id, name, created_at)')
+        .select('id, set_number, reps, weight, exercise_id, exercises!inner(id, name, muscle_group, created_at)')
         .eq('workout_id', id)
         .order('set_number', { ascending: true })
 
@@ -184,9 +184,9 @@ export default function WorkoutPage({ params }: { params: Promise<{ id: string }
   async function finishWorkout() {
     setSaving(true)
     await supabase.from('workouts').update({ notes: notes || null, category: category || null }).eq('id', id)
-    const today = new Date().toISOString().split('T')[0]
-    const isTodayWorkout = workout?.date === today
-    if (isTodayWorkout) {
+    const isFresh = sessionStorage.getItem('freshWorkoutId') === id
+    if (isFresh) {
+      sessionStorage.removeItem('freshWorkoutId')
       fireworks()
       setTimeout(() => router.push('/'), 1300)
     } else {
@@ -287,7 +287,7 @@ export default function WorkoutPage({ params }: { params: Promise<{ id: string }
         ) : (
           <ExerciseSummary
             key={exercise.id}
-            name={exercise.name}
+            exercise={exercise}
             sets={sets}
             onEdit={() => toggleEdit(exercise.id)}
           />

@@ -32,8 +32,10 @@ export default function Home() {
       .insert({ date: new Date().toISOString().split('T')[0] })
       .select()
       .single()
-    if (data) router.push(`/workout/${data.id}`)
-    else {
+    if (data) {
+      sessionStorage.setItem('freshWorkoutId', data.id as string)
+      router.push(`/workout/${data.id}`)
+    } else {
       alert(`Error: ${error?.message}`)
       setStarting(false)
     }

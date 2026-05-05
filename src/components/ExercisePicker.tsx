@@ -71,7 +71,7 @@ export default function ExercisePicker({ onSelect, onClose }: Props) {
               style={{ color: 'var(--text)' }}
             >
               <span className="truncate">{ex.name}</span>
-              <MuscleBadge exerciseName={ex.name} />
+              <MuscleBadge exercise={ex} />
             </button>
           ))}
           {query && filtered.length === 0 && (
