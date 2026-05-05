@@ -5,59 +5,89 @@ import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import type { Exercise, Workout } from '@/lib/types'
 import ExerciseBlock from '@/components/ExerciseBlock'
+import ExerciseSummary from '@/components/ExerciseSummary'
 import ExercisePicker from '@/components/ExercisePicker'
+
+interface SetData {
+  id: string
+  set_number: number
+  reps: number | null
+  weight: number | null
+}
+
+interface ExerciseEntry {
+  exercise: Exercise
+  sets: SetData[]
+}
 
 export default function WorkoutPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params)
   const router = useRouter()
   const [workout, setWorkout] = useState<Workout | null>(null)
-  const [exercises, setExercises] = useState<Exercise[]>([])
+  const [entries, setEntries] = useState<ExerciseEntry[]>([])
+  const [editingIds, setEditingIds] = useState<Set<string>>(new Set())
+  const [isNew, setIsNew] = useState(false)
   const [showPicker, setShowPicker] = useState(false)
   const [notes, setNotes] = useState('')
   const [saving, setSaving] = useState(false)
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    supabase
-      .from('workouts')
-      .select('*')
-      .eq('id', id)
-      .single()
-      .then(({ data }) => {
-        if (data) {
-          setWorkout(data)
-          setNotes(data.notes ?? '')
-        }
-      })
+    async function load() {
+      const { data: w } = await supabase.from('workouts').select('*').eq('id', id).single()
+      if (w) {
+        setWorkout(w)
+        setNotes(w.notes ?? '')
+      }
 
-    // Load exercises already in this workout
-    supabase
-      .from('sets')
-      .select('exercise_id, exercises!inner(id, name, created_at)')
-      .eq('workout_id', id)
-      .then(({ data }) => {
-        if (!data) return
-        const seen = new Set<string>()
-        const unique: Exercise[] = []
-        for (const row of data) {
-          const ex = row.exercises as unknown as Exercise
-          if (!seen.has(ex.id)) {
-            seen.add(ex.id)
-            unique.push(ex)
-          }
-        }
-        setExercises(unique)
-      })
+      const { data: setsRaw } = await supabase
+        .from('sets')
+        .select('id, set_number, reps, weight, exercise_id, exercises!inner(id, name, created_at)')
+        .eq('workout_id', id)
+        .order('set_number', { ascending: true })
+
+      if (!setsRaw || setsRaw.length === 0) {
+        setIsNew(true)
+        setLoading(false)
+        return
+      }
+
+      const map = new Map<string, ExerciseEntry>()
+      for (const row of setsRaw) {
+        const ex = row.exercises as unknown as Exercise
+        if (!map.has(ex.id)) map.set(ex.id, { exercise: ex, sets: [] })
+        map.get(ex.id)!.sets.push({
+          id: row.id,
+          set_number: row.set_number,
+          reps: row.reps,
+          weight: row.weight,
+        })
+      }
+      setEntries(Array.from(map.values()))
+      setLoading(false)
+    }
+    load()
   }, [id])
 
   function addExercise(ex: Exercise) {
     setShowPicker(false)
-    if (!exercises.find((e) => e.id === ex.id)) {
-      setExercises((prev) => [...prev, ex])
+    if (!entries.find((e) => e.exercise.id === ex.id)) {
+      setEntries((prev) => [...prev, { exercise: ex, sets: [] }])
+      setEditingIds((prev) => new Set(prev).add(ex.id))
     }
   }
 
+  function toggleEdit(exerciseId: string) {
+    setEditingIds((prev) => {
+      const next = new Set(prev)
+      next.has(exerciseId) ? next.delete(exerciseId) : next.add(exerciseId)
+      return next
+    })
+  }
+
   function removeExercise(exerciseId: string) {
-    setExercises((prev) => prev.filter((e) => e.id !== exerciseId))
+    setEntries((prev) => prev.filter((e) => e.exercise.id !== exerciseId))
+    setEditingIds((prev) => { const n = new Set(prev); n.delete(exerciseId); return n })
   }
 
   async function finishWorkout() {
@@ -66,10 +96,10 @@ export default function WorkoutPage({ params }: { params: Promise<{ id: string }
     router.push('/')
   }
 
-  if (!workout) {
+  if (loading || !workout) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="w-8 h-8 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
+        <div className="w-5 h-5 border border-t-transparent rounded-full animate-spin" style={{ borderColor: 'var(--gold)', borderTopColor: 'transparent' }} />
       </div>
     )
   }
@@ -82,45 +112,58 @@ export default function WorkoutPage({ params }: { params: Promise<{ id: string }
 
   return (
     <div>
-      <div className="flex items-center justify-between mt-4 mb-6">
+      <div className="flex items-start justify-between mt-8 mb-8">
         <div>
-          <h1 className="text-xl font-bold">Workout</h1>
-          <p className="text-sm text-slate-500">{dateLabel}</p>
+          <p className="text-xs tracking-widest uppercase mb-1" style={{ color: 'var(--gold)' }}>Workout</p>
+          <h1 className="text-2xl font-bold tracking-tight">{dateLabel}</h1>
         </div>
         <button
           onClick={finishWorkout}
           disabled={saving}
-          className="bg-emerald-600 hover:bg-emerald-500 text-white font-semibold px-4 py-2 rounded-xl text-sm disabled:opacity-60"
+          className="text-xs tracking-widest uppercase py-2 px-4 transition-opacity disabled:opacity-40 mt-1"
+          style={{ background: 'var(--gold)', color: '#080808' }}
         >
-          {saving ? 'Saving...' : 'Finish'}
+          {saving ? 'Saving...' : 'Done'}
         </button>
       </div>
 
-      {exercises.map((ex) => (
-        <ExerciseBlock
-          key={ex.id}
-          exercise={ex}
-          workoutId={id}
-          onRemove={() => removeExercise(ex.id)}
-        />
-      ))}
+      {entries.map(({ exercise, sets }) =>
+        editingIds.has(exercise.id) ? (
+          <ExerciseBlock
+            key={exercise.id}
+            exercise={exercise}
+            workoutId={id}
+            onRemove={() => removeExercise(exercise.id)}
+            initialSets={sets.length > 0 ? sets : undefined}
+          />
+        ) : (
+          <ExerciseSummary
+            key={exercise.id}
+            name={exercise.name}
+            sets={sets}
+            onEdit={() => toggleEdit(exercise.id)}
+          />
+        )
+      )}
 
-      <button
-        onClick={() => setShowPicker(true)}
-        className="w-full bg-slate-900 hover:bg-slate-800 border border-dashed border-slate-700 hover:border-indigo-500 text-indigo-400 font-medium py-4 rounded-2xl transition-colors mb-4"
-      >
-        + Add Exercise
-      </button>
+      {(isNew || entries.length > 0) && (
+        <button
+          onClick={() => setShowPicker(true)}
+          className="w-full py-4 text-xs tracking-widest uppercase mb-4 transition-opacity hover:opacity-70"
+          style={{ color: 'var(--gold)', border: '1px solid #1c1c1c' }}
+        >
+          + Add Exercise
+        </button>
+      )}
 
-      <div className="mb-4">
-        <textarea
-          placeholder="Notes (optional)..."
-          value={notes}
-          onChange={(e) => setNotes(e.target.value)}
-          rows={2}
-          className="w-full bg-slate-900 rounded-xl px-4 py-3 text-slate-300 placeholder-slate-600 outline-none focus:ring-1 focus:ring-indigo-500 resize-none text-sm"
-        />
-      </div>
+      <textarea
+        placeholder="Notes..."
+        value={notes}
+        onChange={(e) => setNotes(e.target.value)}
+        rows={2}
+        className="w-full px-4 py-3 text-sm outline-none resize-none mb-4"
+        style={{ background: '#0d0d0d', color: '#888', border: '1px solid #1c1c1c' }}
+      />
 
       {showPicker && <ExercisePicker onSelect={addExercise} onClose={() => setShowPicker(false)} />}
     </div>

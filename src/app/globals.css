@@ -1,5 +1,17 @@
 @import "tailwindcss";
 
+:root {
+  --gold: #C4A044;
+  --gold-muted: #9A7B2E;
+}
+
 body {
   -webkit-tap-highlight-color: transparent;
+  background-color: #080808;
+  color: #f0ede8;
+}
+
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
 }

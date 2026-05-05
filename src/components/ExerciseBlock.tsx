@@ -2,12 +2,20 @@
 
 import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
-import type { Exercise, Set } from '@/lib/types'
+import type { Exercise } from '@/lib/types'
+
+interface ExistingSet {
+  id: string
+  set_number: number
+  reps: number | null
+  weight: number | null
+}
 
 interface Props {
   exercise: Exercise
   workoutId: string
   onRemove: () => void
+  initialSets?: ExistingSet[]
 }
 
 interface SetRow {
@@ -18,12 +26,22 @@ interface SetRow {
   saved: boolean
 }
 
-export default function ExerciseBlock({ exercise, workoutId, onRemove }: Props) {
+export default function ExerciseBlock({ exercise, workoutId, onRemove, initialSets }: Props) {
   const [sets, setSets] = useState<SetRow[]>([])
   const [lastWeight, setLastWeight] = useState<number | null>(null)
 
   useEffect(() => {
-    // Load last weight used for this exercise (from any prior workout)
+    if (initialSets && initialSets.length > 0) {
+      setSets(initialSets.map((s) => ({
+        id: s.id,
+        set_number: s.set_number,
+        reps: s.reps !== null ? String(s.reps) : '',
+        weight: s.weight !== null ? String(s.weight) : '',
+        saved: true,
+      })))
+      return
+    }
+
     supabase
       .from('sets')
       .select('weight, workouts!inner(id)')
@@ -37,7 +55,7 @@ export default function ExerciseBlock({ exercise, workoutId, onRemove }: Props) 
         setLastWeight(w)
         setSets([{ set_number: 1, reps: '', weight: w !== null ? String(w) : '', saved: false }])
       })
-  }, [exercise.id, workoutId])
+  }, [exercise.id, workoutId, initialSets])
 
   function addSet() {
     const prev = sets[sets.length - 1]
@@ -84,53 +102,68 @@ export default function ExerciseBlock({ exercise, workoutId, onRemove }: Props) 
   }
 
   return (
-    <div className="bg-slate-900 rounded-2xl p-4 mb-4">
-      <div className="flex items-center justify-between mb-3">
-        <h3 className="font-semibold text-lg">{exercise.name}</h3>
-        <button onClick={onRemove} className="text-slate-500 hover:text-red-400 text-sm px-2 py-1">
+    <div className="mb-6 pb-6 border-b" style={{ borderColor: '#1c1c1c' }}>
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-sm font-semibold tracking-widest uppercase" style={{ color: '#f0ede8' }}>
+          {exercise.name}
+        </h3>
+        <button
+          onClick={onRemove}
+          className="text-xs tracking-wider uppercase transition-opacity hover:opacity-60"
+          style={{ color: '#555' }}
+        >
           Remove
         </button>
       </div>
 
       {lastWeight !== null && (
-        <p className="text-xs text-slate-500 mb-3">Last: {lastWeight} lbs</p>
+        <p className="text-xs mb-4" style={{ color: 'var(--gold)' }}>
+          Last session: {lastWeight} lbs
+        </p>
       )}
 
-      <div className="grid grid-cols-[2rem_1fr_1fr_2rem] gap-2 text-xs text-slate-500 mb-1 px-1">
+      <div className="grid grid-cols-[2rem_1fr_1fr_1.5rem] gap-3 text-xs tracking-widest uppercase mb-2" style={{ color: '#444' }}>
         <span>Set</span>
         <span>Reps</span>
-        <span>Weight (lbs)</span>
+        <span>Lbs</span>
         <span></span>
       </div>
 
       {sets.map((row, i) => (
-        <div key={i} className="grid grid-cols-[2rem_1fr_1fr_2rem] gap-2 items-center mb-2">
-          <span className="text-slate-400 text-sm text-center">{row.set_number}</span>
+        <div key={i} className="grid grid-cols-[2rem_1fr_1fr_1.5rem] gap-3 items-center mb-2">
+          <span className="text-xs text-center" style={{ color: '#555' }}>{row.set_number}</span>
           <input
             type="number"
             inputMode="numeric"
-            placeholder="0"
+            placeholder="—"
             value={row.reps}
             onChange={(e) => updateSet(i, 'reps', e.target.value)}
             onBlur={() => saveSet(i)}
-            className={`bg-slate-800 rounded-lg px-3 py-2 text-center text-sm outline-none focus:ring-1 focus:ring-indigo-500 ${
-              row.saved ? 'ring-1 ring-emerald-600/40' : ''
-            }`}
+            className="px-3 py-2 text-center text-sm outline-none transition-colors"
+            style={{
+              background: '#111',
+              color: '#f0ede8',
+              border: `1px solid ${row.saved ? '#2a3a2a' : '#1c1c1c'}`,
+            }}
           />
           <input
             type="number"
             inputMode="decimal"
-            placeholder="0"
+            placeholder="—"
             value={row.weight}
             onChange={(e) => updateSet(i, 'weight', e.target.value)}
             onBlur={() => saveSet(i)}
-            className={`bg-slate-800 rounded-lg px-3 py-2 text-center text-sm outline-none focus:ring-1 focus:ring-indigo-500 ${
-              row.saved ? 'ring-1 ring-emerald-600/40' : ''
-            }`}
+            className="px-3 py-2 text-center text-sm outline-none transition-colors"
+            style={{
+              background: '#111',
+              color: '#f0ede8',
+              border: `1px solid ${row.saved ? '#2a3a2a' : '#1c1c1c'}`,
+            }}
           />
           <button
             onClick={() => removeSet(i)}
-            className="text-slate-600 hover:text-red-400 text-lg leading-none"
+            className="text-base leading-none transition-opacity hover:opacity-60"
+            style={{ color: '#444' }}
           >
             ×
           </button>
@@ -139,7 +172,8 @@ export default function ExerciseBlock({ exercise, workoutId, onRemove }: Props) 
 
       <button
         onClick={addSet}
-        className="mt-2 w-full text-indigo-400 hover:text-indigo-300 text-sm py-2 border border-dashed border-slate-700 hover:border-indigo-500 rounded-xl transition-colors"
+        className="mt-3 w-full py-2 text-xs tracking-widest uppercase transition-opacity hover:opacity-70"
+        style={{ color: 'var(--gold)', border: '1px solid #1c1c1c' }}
       >
         + Add Set
       </button>

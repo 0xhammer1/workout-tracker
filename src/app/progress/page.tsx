@@ -19,7 +19,6 @@ export default function ProgressPage() {
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
-    // Only show exercises that have been logged
     supabase
       .from('sets')
       .select('exercise_id, exercises!inner(id, name, created_at)')
@@ -29,10 +28,7 @@ export default function ProgressPage() {
         const unique: Exercise[] = []
         for (const row of data) {
           const ex = row.exercises as unknown as Exercise
-          if (!seen.has(ex.id)) {
-            seen.add(ex.id)
-            unique.push(ex)
-          }
+          if (!seen.has(ex.id)) { seen.add(ex.id); unique.push(ex) }
         }
         unique.sort((a, b) => a.name.localeCompare(b.name))
         setExercises(unique)
@@ -43,7 +39,6 @@ export default function ProgressPage() {
   useEffect(() => {
     if (!selectedId) return
     setLoading(true)
-
     supabase
       .from('sets')
       .select('weight, reps, workouts!inner(date)')
@@ -52,8 +47,6 @@ export default function ProgressPage() {
       .order('created_at', { ascending: true })
       .then(({ data }) => {
         if (!data) { setChartData([]); setLoading(false); return }
-
-        // Group by workout date
         const byDate = new Map<string, { weights: number[]; volume: number }>()
         for (const row of data) {
           const date = (row.workouts as unknown as { date: string }).date
@@ -64,7 +57,6 @@ export default function ProgressPage() {
           entry.weights.push(w)
           entry.volume += w * r
         }
-
         const points: ChartPoint[] = Array.from(byDate.entries())
           .sort(([a], [b]) => a.localeCompare(b))
           .map(([date, { weights, volume }]) => ({
@@ -72,7 +64,6 @@ export default function ProgressPage() {
             maxWeight: Math.max(...weights),
             totalVolume: Math.round(volume),
           }))
-
         setChartData(points)
         setLoading(false)
       })
@@ -82,88 +73,73 @@ export default function ProgressPage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold mt-6 mb-6">Progress</h1>
+      <h1 className="text-3xl font-bold tracking-tight mt-8 mb-6">Progress</h1>
 
       {exercises.length === 0 ? (
-        <p className="text-slate-500 text-sm text-center py-16">
+        <p className="text-sm text-center py-16" style={{ color: '#444' }}>
           Log some workouts first to see progress charts.
         </p>
       ) : (
         <>
-          <select
-            value={selectedId}
-            onChange={(e) => setSelectedId(e.target.value)}
-            className="w-full bg-slate-900 rounded-xl px-4 py-3 text-slate-100 outline-none mb-4 appearance-none"
-          >
-            {exercises.map((ex) => (
-              <option key={ex.id} value={ex.id}>
-                {ex.name}
-              </option>
-            ))}
-          </select>
+          <div className="mb-4" style={{ border: '1px solid #1c1c1c' }}>
+            <select
+              value={selectedId}
+              onChange={(e) => setSelectedId(e.target.value)}
+              className="w-full px-4 py-3 text-sm outline-none appearance-none"
+              style={{ background: '#0d0d0d', color: '#f0ede8' }}
+            >
+              {exercises.map((ex) => (
+                <option key={ex.id} value={ex.id}>{ex.name}</option>
+              ))}
+            </select>
+          </div>
 
-          <div className="flex gap-2 mb-6">
-            <button
-              onClick={() => setMetric('maxWeight')}
-              className={`flex-1 py-2 rounded-xl text-sm font-medium transition-colors ${
-                metric === 'maxWeight'
-                  ? 'bg-indigo-600 text-white'
-                  : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
-              }`}
-            >
-              Max Weight
-            </button>
-            <button
-              onClick={() => setMetric('totalVolume')}
-              className={`flex-1 py-2 rounded-xl text-sm font-medium transition-colors ${
-                metric === 'totalVolume'
-                  ? 'bg-indigo-600 text-white'
-                  : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
-              }`}
-            >
-              Total Volume
-            </button>
+          <div className="flex gap-px mb-6" style={{ border: '1px solid #1c1c1c' }}>
+            {(['maxWeight', 'totalVolume'] as const).map((m) => (
+              <button
+                key={m}
+                onClick={() => setMetric(m)}
+                className="flex-1 py-2.5 text-xs tracking-widest uppercase transition-colors"
+                style={{
+                  background: metric === m ? 'var(--gold)' : '#0d0d0d',
+                  color: metric === m ? '#080808' : '#555',
+                }}
+              >
+                {m === 'maxWeight' ? 'Max Weight' : 'Volume'}
+              </button>
+            ))}
           </div>
 
           {selectedExercise && (
-            <div className="bg-slate-900 rounded-2xl p-4">
-              <h2 className="font-semibold mb-4">{selectedExercise.name}</h2>
+            <div className="p-5" style={{ border: '1px solid #1c1c1c' }}>
+              <p className="text-xs tracking-widest uppercase mb-5" style={{ color: 'var(--gold)' }}>
+                {selectedExercise.name}
+              </p>
               {loading ? (
-                <div className="h-56 flex items-center justify-center">
-                  <div className="w-8 h-8 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
+                <div className="h-48 flex items-center justify-center">
+                  <div className="w-5 h-5 border border-t-transparent rounded-full animate-spin" style={{ borderColor: 'var(--gold)', borderTopColor: 'transparent' }} />
                 </div>
               ) : (
                 <ProgressChart data={chartData} metric={metric} />
               )}
               {chartData.length > 0 && (
-                <div className="mt-4 grid grid-cols-3 gap-3">
-                  <Stat
-                    label="Sessions"
-                    value={String(chartData.length)}
-                  />
-                  <Stat
-                    label="Best"
-                    value={`${Math.max(...chartData.map((d) => d.maxWeight))} lbs`}
-                  />
-                  <Stat
-                    label="Last"
-                    value={`${chartData[chartData.length - 1]?.maxWeight} lbs`}
-                  />
+                <div className="mt-6 grid grid-cols-3 gap-4">
+                  {[
+                    { label: 'Sessions', value: String(chartData.length) },
+                    { label: 'Best', value: `${Math.max(...chartData.map((d) => d.maxWeight))} lbs` },
+                    { label: 'Last', value: `${chartData[chartData.length - 1]?.maxWeight} lbs` },
+                  ].map(({ label, value }) => (
+                    <div key={label} className="text-center py-3" style={{ border: '1px solid #1c1c1c' }}>
+                      <div className="text-base font-semibold" style={{ color: '#f0ede8' }}>{value}</div>
+                      <div className="text-xs tracking-widest uppercase mt-1" style={{ color: '#444' }}>{label}</div>
+                    </div>
+                  ))}
                 </div>
               )}
             </div>
           )}
         </>
       )}
-    </div>
-  )
-}
-
-function Stat({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="bg-slate-800 rounded-xl p-3 text-center">
-      <div className="text-lg font-semibold">{value}</div>
-      <div className="text-xs text-slate-500 mt-0.5">{label}</div>
     </div>
   )
 }

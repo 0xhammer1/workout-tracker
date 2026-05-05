@@ -21,15 +21,10 @@ const PERIODS: { label: string; value: Period }[] = [
 
 function startDateFor(period: Period): string | null {
   const now = new Date()
-  if (period === 'week') {
-    now.setDate(now.getDate() - 7)
-  } else if (period === 'month') {
-    now.setMonth(now.getMonth() - 1)
-  } else if (period === 'year') {
-    now.setFullYear(now.getFullYear() - 1)
-  } else {
-    return null
-  }
+  if (period === 'week') now.setDate(now.getDate() - 7)
+  else if (period === 'month') now.setMonth(now.getMonth() - 1)
+  else if (period === 'year') now.setFullYear(now.getFullYear() - 1)
+  else return null
   return now.toISOString().split('T')[0]
 }
 
@@ -54,13 +49,11 @@ export default function HistoryPage() {
             .from('sets')
             .select('id, exercise_id')
             .eq('workout_id', w.id)
-
           const rows = sets as { id: string; exercise_id: string }[] | null
           const exerciseCount = new Set(rows?.map((s) => s.exercise_id)).size
           return { ...w, exerciseCount, setCount: rows?.length ?? 0 }
         })
       )
-
       setAllWorkouts(summaries)
       setLoading(false)
     }
@@ -75,24 +68,22 @@ export default function HistoryPage() {
   }
 
   const cutoff = startDateFor(period)
-  const workouts = cutoff
-    ? allWorkouts.filter((w) => w.date >= cutoff)
-    : allWorkouts
+  const workouts = cutoff ? allWorkouts.filter((w) => w.date >= cutoff) : allWorkouts
 
   return (
     <div>
-      <h1 className="text-2xl font-bold mt-6 mb-4">History</h1>
+      <h1 className="text-3xl font-bold tracking-tight mt-8 mb-6">History</h1>
 
-      <div className="flex gap-2 mb-6">
+      <div className="flex gap-px mb-8" style={{ border: '1px solid #1c1c1c' }}>
         {PERIODS.map(({ label, value }) => (
           <button
             key={value}
             onClick={() => setPeriod(value)}
-            className={`flex-1 py-2 rounded-xl text-sm font-medium transition-colors ${
-              period === value
-                ? 'bg-indigo-600 text-white'
-                : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
-            }`}
+            className="flex-1 py-2.5 text-xs tracking-widest uppercase transition-colors"
+            style={{
+              background: period === value ? 'var(--gold)' : '#0d0d0d',
+              color: period === value ? '#080808' : '#555',
+            }}
           >
             {label}
           </button>
@@ -100,44 +91,47 @@ export default function HistoryPage() {
       </div>
 
       {loading ? (
-        <div className="space-y-3">
+        <div className="space-y-px">
           {[...Array(5)].map((_, i) => (
-            <div key={i} className="h-20 bg-slate-800 rounded-2xl animate-pulse" />
+            <div key={i} className="h-16 animate-pulse" style={{ background: '#111' }} />
           ))}
         </div>
       ) : workouts.length === 0 ? (
-        <p className="text-slate-500 text-sm text-center py-16">
+        <p className="text-sm text-center py-16" style={{ color: '#444' }}>
           No workouts in this period.
         </p>
       ) : (
-        <div className="space-y-3">
+        <div>
           {workouts.map((w) => (
             <Link
               key={w.id}
               href={`/workout/${w.id}`}
-              className="block bg-slate-900 hover:bg-slate-800 rounded-2xl px-4 py-4 transition-colors"
+              className="flex items-center justify-between py-4 border-b transition-opacity hover:opacity-70"
+              style={{ borderColor: '#1c1c1c' }}
             >
-              <div className="flex items-start justify-between">
-                <div>
-                  <div className="font-medium">
-                    {new Date(w.date + 'T12:00:00').toLocaleDateString('en-US', {
-                      weekday: 'long',
-                      month: 'short',
-                      day: 'numeric',
-                      year: 'numeric',
-                    })}
-                  </div>
-                  <div className="text-sm text-slate-500 mt-1">
-                    {w.exerciseCount} exercise{w.exerciseCount !== 1 ? 's' : ''} · {w.setCount} set{w.setCount !== 1 ? 's' : ''}
-                  </div>
-                  {w.notes && <div className="text-sm text-slate-400 mt-1 italic">{w.notes}</div>}
+              <div>
+                <div className="text-sm font-medium" style={{ color: '#f0ede8' }}>
+                  {new Date(w.date + 'T12:00:00').toLocaleDateString('en-US', {
+                    weekday: 'long',
+                    month: 'short',
+                    day: 'numeric',
+                    year: 'numeric',
+                  })}
                 </div>
+                <div className="text-xs mt-0.5 tracking-wide" style={{ color: '#444' }}>
+                  {w.exerciseCount} exercise{w.exerciseCount !== 1 ? 's' : ''} · {w.setCount} set{w.setCount !== 1 ? 's' : ''}
+                </div>
+                {w.notes && <div className="text-xs mt-0.5 italic" style={{ color: '#555' }}>{w.notes}</div>}
+              </div>
+              <div className="flex items-center gap-4 ml-4 shrink-0">
                 <button
                   onClick={(e) => deleteWorkout(e, w.id)}
-                  className="ml-3 mt-0.5 bg-red-950 hover:bg-red-900 text-red-400 text-xs font-medium px-3 py-1.5 rounded-lg transition-colors shrink-0"
+                  className="text-xs tracking-wider uppercase transition-opacity hover:opacity-60"
+                  style={{ color: '#6b2020' }}
                 >
                   Delete
                 </button>
+                <span style={{ color: 'var(--gold)' }}>→</span>
               </div>
             </Link>
           ))}

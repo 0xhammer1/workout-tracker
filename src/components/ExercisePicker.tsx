@@ -12,7 +12,6 @@ interface Props {
 export default function ExercisePicker({ onSelect, onClose }: Props) {
   const [exercises, setExercises] = useState<Exercise[]>([])
   const [query, setQuery] = useState('')
-  const [newName, setNewName] = useState('')
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
@@ -28,7 +27,7 @@ export default function ExercisePicker({ onSelect, onClose }: Props) {
   )
 
   async function createAndSelect() {
-    const name = (newName || query).trim()
+    const name = (query).trim()
     if (!name) return
     setLoading(true)
     const { data, error } = await supabase
@@ -42,19 +41,21 @@ export default function ExercisePicker({ onSelect, onClose }: Props) {
   }
 
   return (
-    <div className="fixed inset-0 bg-black/70 z-50 flex items-end" onClick={onClose}>
+    <div className="fixed inset-0 z-50 flex items-end" style={{ background: 'rgba(0,0,0,0.85)' }} onClick={onClose}>
       <div
-        className="bg-slate-900 w-full max-w-lg mx-auto rounded-t-2xl max-h-[80vh] flex flex-col"
+        className="w-full max-w-lg mx-auto flex flex-col"
+        style={{ background: '#0d0d0d', borderTop: '1px solid #1c1c1c', maxHeight: '75vh' }}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="p-4 border-b border-slate-800">
+        <div className="p-4" style={{ borderBottom: '1px solid #1c1c1c' }}>
           <input
             autoFocus
             type="text"
             placeholder="Search exercises..."
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            className="w-full bg-slate-800 rounded-xl px-4 py-3 text-slate-100 placeholder-slate-500 outline-none"
+            className="w-full px-4 py-3 text-sm outline-none"
+            style={{ background: '#111', color: '#f0ede8', border: '1px solid #222' }}
           />
         </div>
         <div className="overflow-y-auto flex-1">
@@ -62,17 +63,19 @@ export default function ExercisePicker({ onSelect, onClose }: Props) {
             <button
               key={ex.id}
               onClick={() => onSelect(ex)}
-              className="w-full text-left px-4 py-3 hover:bg-slate-800 active:bg-slate-700 border-b border-slate-800/50 text-slate-100"
+              className="w-full text-left px-5 py-4 text-sm transition-opacity hover:opacity-70"
+              style={{ color: '#f0ede8', borderBottom: '1px solid #141414' }}
             >
               {ex.name}
             </button>
           ))}
           {query && filtered.length === 0 && (
-            <div className="p-4">
+            <div className="p-5">
               <button
                 onClick={createAndSelect}
                 disabled={loading}
-                className="w-full bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl py-3 font-medium disabled:opacity-50"
+                className="w-full py-3 text-xs tracking-widest uppercase disabled:opacity-40"
+                style={{ background: 'var(--gold)', color: '#080808' }}
               >
                 {loading ? 'Adding...' : `Add "${query}"`}
               </button>
