@@ -1,0 +1,339 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Lift Labs — Logo Options</title>
+  <style>
+    :root {
+      --bg: #0a0a0c;
+      --surface: #15161a;
+      --border: #26272d;
+      --text: #f5f5f7;
+      --text-secondary: #9ca0a8;
+      --accent: #6366f1;
+    }
+    html, body { background: var(--bg); color: var(--text); margin: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Inter', sans-serif;
+      padding: 40px 24px 80px;
+      max-width: 980px;
+      margin: 0 auto;
+    }
+    h1 { font-size: 28px; margin: 0 0 8px; letter-spacing: -0.02em; }
+    p.lede { color: var(--text-secondary); margin: 0 0 40px; }
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 28px;
+      margin-bottom: 22px;
+    }
+    .card h2 { margin: 0 0 4px; font-size: 18px; letter-spacing: -0.01em; }
+    .card p { margin: 0 0 22px; color: var(--text-secondary); font-size: 13px; }
+    .row { display: flex; align-items: center; gap: 28px; flex-wrap: wrap; }
+    .swatch {
+      display: flex; flex-direction: column; align-items: center; gap: 8px;
+    }
+    .swatch span { font-size: 10px; color: var(--text-secondary); letter-spacing: 0.05em; text-transform: uppercase; }
+    .icon-lg { width: 120px; height: 120px; }
+    .icon-md { width: 56px; height: 56px; }
+    .icon-sm { width: 24px; height: 24px; }
+    .accent { color: var(--accent); }
+    .white { color: #fff; }
+    .light-bg {
+      background: #fff;
+      color: #0a0a0c;
+      border-radius: 12px;
+      padding: 8px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Lift Labs — Logo Options</h1>
+  <p class="lede">Five concepts. Each shown at 120, 56, and 24px (favicon), in white, accent (indigo), and on a light background. Tell me which direction you like and I'll refine.</p>
+
+  <!-- ============================================================ -->
+  <!-- 1. ATOM PLATE -->
+  <!-- ============================================================ -->
+  <div class="card">
+    <h2>1 — Atom Plate</h2>
+    <p>Atom orbits around a weight plate. "Lab" + "Lift" combined into one mark. Reads as a science symbol from far away, weight plate up close.</p>
+    <div class="row">
+      <div class="swatch">
+        <svg class="icon-lg white" viewBox="0 0 200 200" fill="none" stroke="currentColor" xmlns="http://www.w3.org/2000/svg">
+          <ellipse cx="100" cy="100" rx="82" ry="28" stroke-width="6"/>
+          <ellipse cx="100" cy="100" rx="82" ry="28" stroke-width="6" transform="rotate(60 100 100)"/>
+          <ellipse cx="100" cy="100" rx="82" ry="28" stroke-width="6" transform="rotate(-60 100 100)"/>
+          <circle cx="100" cy="100" r="20" fill="currentColor" stroke="none"/>
+          <circle cx="100" cy="100" r="6" fill="#0a0a0c" stroke="none"/>
+        </svg>
+        <span>120 white</span>
+      </div>
+      <div class="swatch">
+        <svg class="icon-lg accent" viewBox="0 0 200 200" fill="none" stroke="currentColor">
+          <ellipse cx="100" cy="100" rx="82" ry="28" stroke-width="6"/>
+          <ellipse cx="100" cy="100" rx="82" ry="28" stroke-width="6" transform="rotate(60 100 100)"/>
+          <ellipse cx="100" cy="100" rx="82" ry="28" stroke-width="6" transform="rotate(-60 100 100)"/>
+          <circle cx="100" cy="100" r="20" fill="currentColor" stroke="none"/>
+          <circle cx="100" cy="100" r="6" fill="#0a0a0c" stroke="none"/>
+        </svg>
+        <span>120 accent</span>
+      </div>
+      <div class="swatch">
+        <svg class="icon-md white" viewBox="0 0 200 200" fill="none" stroke="currentColor">
+          <ellipse cx="100" cy="100" rx="82" ry="28" stroke-width="8"/>
+          <ellipse cx="100" cy="100" rx="82" ry="28" stroke-width="8" transform="rotate(60 100 100)"/>
+          <ellipse cx="100" cy="100" rx="82" ry="28" stroke-width="8" transform="rotate(-60 100 100)"/>
+          <circle cx="100" cy="100" r="22" fill="currentColor" stroke="none"/>
+          <circle cx="100" cy="100" r="7" fill="#0a0a0c" stroke="none"/>
+        </svg>
+        <span>56</span>
+      </div>
+      <div class="swatch">
+        <svg class="icon-sm white" viewBox="0 0 200 200" fill="none" stroke="currentColor">
+          <ellipse cx="100" cy="100" rx="82" ry="28" stroke-width="14"/>
+          <ellipse cx="100" cy="100" rx="82" ry="28" stroke-width="14" transform="rotate(60 100 100)"/>
+          <ellipse cx="100" cy="100" rx="82" ry="28" stroke-width="14" transform="rotate(-60 100 100)"/>
+          <circle cx="100" cy="100" r="32" fill="currentColor" stroke="none"/>
+          <circle cx="100" cy="100" r="10" fill="#0a0a0c" stroke="none"/>
+        </svg>
+        <span>24 (favicon)</span>
+      </div>
+      <div class="swatch">
+        <div class="light-bg">
+          <svg class="icon-md" viewBox="0 0 200 200" fill="none" stroke="currentColor">
+            <ellipse cx="100" cy="100" rx="82" ry="28" stroke-width="8"/>
+            <ellipse cx="100" cy="100" rx="82" ry="28" stroke-width="8" transform="rotate(60 100 100)"/>
+            <ellipse cx="100" cy="100" rx="82" ry="28" stroke-width="8" transform="rotate(-60 100 100)"/>
+            <circle cx="100" cy="100" r="22" fill="currentColor" stroke="none"/>
+            <circle cx="100" cy="100" r="7" fill="#fff" stroke="none"/>
+          </svg>
+        </div>
+        <span>on light</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- 2. FLASK BARBELL -->
+  <!-- ============================================================ -->
+  <div class="card">
+    <h2>2 — Flask Barbell</h2>
+    <p>Erlenmeyer flask containing a barbell. Direct visual mashup of "Lab" + "Lift" — a workout brewing.</p>
+    <div class="row">
+      <div class="swatch">
+        <svg class="icon-lg white" viewBox="0 0 200 200" fill="none" stroke="currentColor">
+          <path d="M 78 28 L 78 78 L 38 158 Q 35 180 60 180 L 140 180 Q 165 180 162 158 L 122 78 L 122 28" stroke-width="8" stroke-linejoin="round" stroke-linecap="round"/>
+          <line x1="72" y1="28" x2="128" y2="28" stroke-width="8" stroke-linecap="round"/>
+          <rect x="55" y="138" width="90" height="8" rx="2" fill="currentColor" stroke="none"/>
+          <rect x="46" y="124" width="14" height="36" rx="3" fill="currentColor" stroke="none"/>
+          <rect x="140" y="124" width="14" height="36" rx="3" fill="currentColor" stroke="none"/>
+        </svg>
+        <span>120 white</span>
+      </div>
+      <div class="swatch">
+        <svg class="icon-lg accent" viewBox="0 0 200 200" fill="none" stroke="currentColor">
+          <path d="M 78 28 L 78 78 L 38 158 Q 35 180 60 180 L 140 180 Q 165 180 162 158 L 122 78 L 122 28" stroke-width="8" stroke-linejoin="round" stroke-linecap="round"/>
+          <line x1="72" y1="28" x2="128" y2="28" stroke-width="8" stroke-linecap="round"/>
+          <rect x="55" y="138" width="90" height="8" rx="2" fill="currentColor" stroke="none"/>
+          <rect x="46" y="124" width="14" height="36" rx="3" fill="currentColor" stroke="none"/>
+          <rect x="140" y="124" width="14" height="36" rx="3" fill="currentColor" stroke="none"/>
+        </svg>
+        <span>120 accent</span>
+      </div>
+      <div class="swatch">
+        <svg class="icon-md white" viewBox="0 0 200 200" fill="none" stroke="currentColor">
+          <path d="M 78 28 L 78 78 L 38 158 Q 35 180 60 180 L 140 180 Q 165 180 162 158 L 122 78 L 122 28" stroke-width="10" stroke-linejoin="round" stroke-linecap="round"/>
+          <line x1="72" y1="28" x2="128" y2="28" stroke-width="10" stroke-linecap="round"/>
+          <rect x="55" y="138" width="90" height="10" rx="2" fill="currentColor" stroke="none"/>
+          <rect x="44" y="122" width="16" height="40" rx="3" fill="currentColor" stroke="none"/>
+          <rect x="140" y="122" width="16" height="40" rx="3" fill="currentColor" stroke="none"/>
+        </svg>
+        <span>56</span>
+      </div>
+      <div class="swatch">
+        <svg class="icon-sm white" viewBox="0 0 200 200" fill="none" stroke="currentColor">
+          <path d="M 78 28 L 78 78 L 38 158 Q 35 180 60 180 L 140 180 Q 165 180 162 158 L 122 78 L 122 28" stroke-width="16" stroke-linejoin="round" stroke-linecap="round"/>
+          <line x1="72" y1="28" x2="128" y2="28" stroke-width="16" stroke-linecap="round"/>
+          <rect x="50" y="135" width="100" height="14" rx="3" fill="currentColor" stroke="none"/>
+          <rect x="38" y="118" width="20" height="48" rx="4" fill="currentColor" stroke="none"/>
+          <rect x="142" y="118" width="20" height="48" rx="4" fill="currentColor" stroke="none"/>
+        </svg>
+        <span>24 (favicon)</span>
+      </div>
+      <div class="swatch">
+        <div class="light-bg">
+          <svg class="icon-md" viewBox="0 0 200 200" fill="none" stroke="currentColor">
+            <path d="M 78 28 L 78 78 L 38 158 Q 35 180 60 180 L 140 180 Q 165 180 162 158 L 122 78 L 122 28" stroke-width="10" stroke-linejoin="round" stroke-linecap="round"/>
+            <line x1="72" y1="28" x2="128" y2="28" stroke-width="10" stroke-linecap="round"/>
+            <rect x="55" y="138" width="90" height="10" rx="2" fill="currentColor" stroke="none"/>
+            <rect x="44" y="122" width="16" height="40" rx="3" fill="currentColor" stroke="none"/>
+            <rect x="140" y="122" width="16" height="40" rx="3" fill="currentColor" stroke="none"/>
+          </svg>
+        </div>
+        <span>on light</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- 3. HEX PLATE LL -->
+  <!-- ============================================================ -->
+  <div class="card">
+    <h2>3 — Hex Plate</h2>
+    <p>Hexagonal weight plate (modern hex dumbbells) with "LL" lockup inside. Strong, monogrammed, gym-flavored. Works as an icon and a sticker.</p>
+    <div class="row">
+      <div class="swatch">
+        <svg class="icon-lg white" viewBox="0 0 200 200" fill="none" stroke="currentColor">
+          <polygon points="100,12 178,55 178,145 100,188 22,145 22,55" stroke-width="10" stroke-linejoin="round"/>
+          <text x="100" y="130" text-anchor="middle" font-family="Inter, -apple-system, sans-serif" font-weight="900" font-size="78" letter-spacing="-4" fill="currentColor" stroke="none">LL</text>
+        </svg>
+        <span>120 white</span>
+      </div>
+      <div class="swatch">
+        <svg class="icon-lg accent" viewBox="0 0 200 200" fill="none" stroke="currentColor">
+          <polygon points="100,12 178,55 178,145 100,188 22,145 22,55" stroke-width="10" stroke-linejoin="round"/>
+          <text x="100" y="130" text-anchor="middle" font-family="Inter, -apple-system, sans-serif" font-weight="900" font-size="78" letter-spacing="-4" fill="currentColor" stroke="none">LL</text>
+        </svg>
+        <span>120 accent</span>
+      </div>
+      <div class="swatch">
+        <svg class="icon-md white" viewBox="0 0 200 200" fill="none" stroke="currentColor">
+          <polygon points="100,12 178,55 178,145 100,188 22,145 22,55" stroke-width="12" stroke-linejoin="round"/>
+          <text x="100" y="130" text-anchor="middle" font-family="Inter, -apple-system, sans-serif" font-weight="900" font-size="78" letter-spacing="-4" fill="currentColor" stroke="none">LL</text>
+        </svg>
+        <span>56</span>
+      </div>
+      <div class="swatch">
+        <svg class="icon-sm white" viewBox="0 0 200 200" fill="none" stroke="currentColor">
+          <polygon points="100,12 178,55 178,145 100,188 22,145 22,55" stroke-width="18" stroke-linejoin="round"/>
+          <text x="100" y="135" text-anchor="middle" font-family="Inter, -apple-system, sans-serif" font-weight="900" font-size="84" letter-spacing="-5" fill="currentColor" stroke="none">LL</text>
+        </svg>
+        <span>24 (favicon)</span>
+      </div>
+      <div class="swatch">
+        <div class="light-bg">
+          <svg class="icon-md" viewBox="0 0 200 200" fill="none" stroke="currentColor">
+            <polygon points="100,12 178,55 178,145 100,188 22,145 22,55" stroke-width="12" stroke-linejoin="round"/>
+            <text x="100" y="130" text-anchor="middle" font-family="Inter, -apple-system, sans-serif" font-weight="900" font-size="78" letter-spacing="-4" fill="currentColor" stroke="none">LL</text>
+          </svg>
+        </div>
+        <span>on light</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- 4. WEIGHT PLATE LL -->
+  <!-- ============================================================ -->
+  <div class="card">
+    <h2>4 — Plate Mark</h2>
+    <p>Round weight plate seen straight-on, with "LL" stamped through the center. Most "gym" of the bunch. Less science, more iron.</p>
+    <div class="row">
+      <div class="swatch">
+        <svg class="icon-lg white" viewBox="0 0 200 200" fill="none">
+          <circle cx="100" cy="100" r="88" stroke="currentColor" stroke-width="10"/>
+          <circle cx="100" cy="100" r="14" stroke="currentColor" stroke-width="6"/>
+          <text x="58" y="128" font-family="Inter, -apple-system, sans-serif" font-weight="900" font-size="62" letter-spacing="-3" fill="currentColor">L</text>
+          <text x="115" y="128" font-family="Inter, -apple-system, sans-serif" font-weight="900" font-size="62" letter-spacing="-3" fill="currentColor">L</text>
+        </svg>
+        <span>120 white</span>
+      </div>
+      <div class="swatch">
+        <svg class="icon-lg accent" viewBox="0 0 200 200" fill="none">
+          <circle cx="100" cy="100" r="88" stroke="currentColor" stroke-width="10"/>
+          <circle cx="100" cy="100" r="14" stroke="currentColor" stroke-width="6"/>
+          <text x="58" y="128" font-family="Inter, -apple-system, sans-serif" font-weight="900" font-size="62" letter-spacing="-3" fill="currentColor">L</text>
+          <text x="115" y="128" font-family="Inter, -apple-system, sans-serif" font-weight="900" font-size="62" letter-spacing="-3" fill="currentColor">L</text>
+        </svg>
+        <span>120 accent</span>
+      </div>
+      <div class="swatch">
+        <svg class="icon-md white" viewBox="0 0 200 200" fill="none">
+          <circle cx="100" cy="100" r="88" stroke="currentColor" stroke-width="14"/>
+          <circle cx="100" cy="100" r="14" stroke="currentColor" stroke-width="8"/>
+          <text x="58" y="128" font-family="Inter, -apple-system, sans-serif" font-weight="900" font-size="62" letter-spacing="-3" fill="currentColor">L</text>
+          <text x="115" y="128" font-family="Inter, -apple-system, sans-serif" font-weight="900" font-size="62" letter-spacing="-3" fill="currentColor">L</text>
+        </svg>
+        <span>56</span>
+      </div>
+      <div class="swatch">
+        <svg class="icon-sm white" viewBox="0 0 200 200" fill="none">
+          <circle cx="100" cy="100" r="88" stroke="currentColor" stroke-width="20"/>
+          <circle cx="100" cy="100" r="16" fill="currentColor"/>
+          <text x="55" y="135" font-family="Inter, -apple-system, sans-serif" font-weight="900" font-size="72" letter-spacing="-4" fill="currentColor">LL</text>
+        </svg>
+        <span>24 (favicon)</span>
+      </div>
+      <div class="swatch">
+        <div class="light-bg">
+          <svg class="icon-md" viewBox="0 0 200 200" fill="none">
+            <circle cx="100" cy="100" r="88" stroke="currentColor" stroke-width="14"/>
+            <circle cx="100" cy="100" r="14" stroke="currentColor" stroke-width="8"/>
+            <text x="58" y="128" font-family="Inter, -apple-system, sans-serif" font-weight="900" font-size="62" letter-spacing="-3" fill="currentColor">L</text>
+            <text x="115" y="128" font-family="Inter, -apple-system, sans-serif" font-weight="900" font-size="62" letter-spacing="-3" fill="currentColor">L</text>
+          </svg>
+        </div>
+        <span>on light</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- 5. UPWARD ARROW BEAKER -->
+  <!-- ============================================================ -->
+  <div class="card">
+    <h2>5 — Lift Arrow</h2>
+    <p>An upward arrow that doubles as the silhouette of a beaker on its side. Implies "lift" through motion, "lab" through shape. Most abstract / "tech-startup."</p>
+    <div class="row">
+      <div class="swatch">
+        <svg class="icon-lg white" viewBox="0 0 200 200" fill="none" stroke="currentColor" stroke-width="14" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M 40 160 L 100 50 L 160 160"/>
+          <path d="M 70 105 L 130 105"/>
+          <circle cx="100" cy="35" r="6" fill="currentColor" stroke="none"/>
+        </svg>
+        <span>120 white</span>
+      </div>
+      <div class="swatch">
+        <svg class="icon-lg accent" viewBox="0 0 200 200" fill="none" stroke="currentColor" stroke-width="14" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M 40 160 L 100 50 L 160 160"/>
+          <path d="M 70 105 L 130 105"/>
+          <circle cx="100" cy="35" r="6" fill="currentColor" stroke="none"/>
+        </svg>
+        <span>120 accent</span>
+      </div>
+      <div class="swatch">
+        <svg class="icon-md white" viewBox="0 0 200 200" fill="none" stroke="currentColor" stroke-width="18" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M 40 160 L 100 50 L 160 160"/>
+          <path d="M 70 105 L 130 105"/>
+          <circle cx="100" cy="35" r="8" fill="currentColor" stroke="none"/>
+        </svg>
+        <span>56</span>
+      </div>
+      <div class="swatch">
+        <svg class="icon-sm white" viewBox="0 0 200 200" fill="none" stroke="currentColor" stroke-width="22" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M 40 160 L 100 50 L 160 160"/>
+          <path d="M 70 110 L 130 110"/>
+          <circle cx="100" cy="32" r="11" fill="currentColor" stroke="none"/>
+        </svg>
+        <span>24 (favicon)</span>
+      </div>
+      <div class="swatch">
+        <div class="light-bg">
+          <svg class="icon-md" viewBox="0 0 200 200" fill="none" stroke="currentColor" stroke-width="18" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M 40 160 L 100 50 L 160 160"/>
+            <path d="M 70 105 L 130 105"/>
+            <circle cx="100" cy="35" r="8" fill="currentColor" stroke="none"/>
+          </svg>
+        </div>
+        <span>on light</span>
+      </div>
+    </div>
+  </div>
+
+  <p style="color: var(--text-secondary); font-size: 13px; margin-top: 40px;">
+    Tell me a number (or two — e.g. "I like 3 but with the vibe of 1") and I'll refine the winner, then wire it into the login screen, favicon, and PWA icon.
+  </p>
+</body>
+</html>

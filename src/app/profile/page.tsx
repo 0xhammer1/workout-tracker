@@ -13,6 +13,7 @@ import {
 } from 'recharts'
 import { supabase } from '@/lib/supabase'
 import ConfirmDialog from '@/components/ConfirmDialog'
+import Avatar from '@/components/Avatar'
 import { resizeImageToDataUrl } from '@/lib/imageResize'
 import { useAuth, signOut } from '@/lib/auth'
 
@@ -48,7 +49,7 @@ export default function ProfilePage() {
   const [dateInput, setDateInput] = useState(new Date().toISOString().split('T')[0])
   const [saving, setSaving] = useState(false)
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null)
-  const [avatarUrl, setAvatarUrl] = useState<string>('/avatar.png')
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null)
   const [uploadingAvatar, setUploadingAvatar] = useState(false)
   const [avatarOpen, setAvatarOpen] = useState(false)
   const [displayName, setDisplayName] = useState<string>('')
@@ -195,12 +196,7 @@ export default function ProfilePage() {
           style={{ border: '1px solid var(--border)' }}
           aria-label="View profile picture"
         >
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={avatarUrl}
-            alt="Profile"
-            className="w-full h-full object-cover"
-          />
+          <Avatar src={avatarUrl} name={displayName} size={96} />
         </button>
         <input
           ref={fileInputRef}
@@ -254,8 +250,7 @@ export default function ProfilePage() {
               className="w-72 h-72 rounded-3xl overflow-hidden"
               style={{ border: '1px solid var(--border)' }}
             >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={avatarUrl} alt="Profile" className="w-full h-full object-cover" />
+              <Avatar src={avatarUrl} name={displayName} size={288} />
             </div>
             <div className="flex gap-3 w-full">
               <button
