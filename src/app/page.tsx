@@ -10,14 +10,17 @@ import MuscleBadge from '@/components/MuscleBadge'
 import RecoveryStrip from '@/components/RecoveryStrip'
 import { suggestWorkout, startSuggestedWorkout, type Suggestion } from '@/lib/suggest'
 import { CATEGORY_LABELS, CATEGORY_COLORS } from '@/lib/categories'
+import { useAuth } from '@/lib/auth'
 
 export default function Home() {
   const router = useRouter()
+  const { user } = useAuth()
   const [recentWorkouts, setRecentWorkouts] = useState<Workout[]>([])
   const [loading, setLoading] = useState(true)
   const [starting, setStarting] = useState(false)
   const [suggestion, setSuggestion] = useState<Suggestion | null>(null)
   const [startingSuggested, setStartingSuggested] = useState(false)
+  const [displayName, setDisplayName] = useState<string>('')
 
   useEffect(() => {
     supabase
@@ -32,6 +35,23 @@ export default function Home() {
 
     suggestWorkout().then(setSuggestion)
   }, [])
+
+  useEffect(() => {
+    if (!user) return
+    const fallback =
+      (user.user_metadata as { full_name?: string; name?: string })?.full_name ||
+      (user.user_metadata as { name?: string })?.name ||
+      user.email?.split('@')[0] ||
+      'You'
+    supabase
+      .from('user_profiles')
+      .select('display_name')
+      .eq('user_id', user.id)
+      .maybeSingle()
+      .then(({ data }) => {
+        setDisplayName((data?.display_name as string) || fallback)
+      })
+  }, [user])
 
   async function startSuggested() {
     if (!suggestion) return
@@ -70,7 +90,9 @@ export default function Home() {
         <p className="text-sm font-medium" style={{ color: 'var(--text-secondary)' }}>
           {greeting}
         </p>
-        <h1 className="text-3xl font-bold tracking-tight mt-1">Welcome, Mitchell</h1>
+        <h1 className="text-3xl font-bold tracking-tight mt-1">
+          Welcome{displayName ? `, ${displayName.split(' ')[0]}` : ''}
+        </h1>
         <p className="text-base mt-2" style={{ color: 'var(--text-secondary)' }}>
           Track your gains.
         </p>
