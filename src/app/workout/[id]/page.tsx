@@ -11,7 +11,7 @@ import ExercisePicker from '@/components/ExercisePicker'
 import { CATEGORIES, CATEGORY_LABELS, CATEGORY_COLORS, type Category } from '@/lib/categories'
 
 function fireworks() {
-  const duration = 1500
+  const duration = 800
   const end = Date.now() + duration
   const colors = ['#6366f1', '#a855f7', '#ec4899', '#f59e0b', '#10b981', '#06b6d4']
 
@@ -20,24 +20,24 @@ function fireworks() {
     if (timeLeft <= 0) return
     const particleCount = Math.max(20, 50 * (timeLeft / duration))
     confetti({
-      startVelocity: 30,
+      startVelocity: 28,
       spread: 360,
-      ticks: 60,
+      ticks: 40,
       zIndex: 9999,
       particleCount,
       colors,
       origin: { x: Math.random() * 0.4 + 0.1, y: Math.random() * 0.3 + 0.2 },
     })
     confetti({
-      startVelocity: 30,
+      startVelocity: 28,
       spread: 360,
-      ticks: 60,
+      ticks: 40,
       zIndex: 9999,
       particleCount,
       colors,
       origin: { x: Math.random() * 0.4 + 0.5, y: Math.random() * 0.3 + 0.2 },
     })
-    setTimeout(burst, 250)
+    setTimeout(burst, 200)
   }
   burst()
 }
@@ -188,7 +188,7 @@ export default function WorkoutPage({ params }: { params: Promise<{ id: string }
     if (isFresh) {
       sessionStorage.removeItem('freshWorkoutId')
       fireworks()
-      setTimeout(() => router.push('/'), 1300)
+      setTimeout(() => router.push('/'), 1500)
     } else {
       router.push('/')
     }
@@ -282,6 +282,15 @@ export default function WorkoutPage({ params }: { params: Promise<{ id: string }
             workoutId={id}
             onRemove={() => removeExercise(exercise.id)}
             onDone={() => toggleEdit(exercise.id)}
+            onMuscleGroupChange={(g) =>
+              setEntries((prev) =>
+                prev.map((e) =>
+                  e.exercise.id === exercise.id
+                    ? { ...e, exercise: { ...e.exercise, muscle_group: g } }
+                    : e
+                )
+              )
+            }
             initialSets={sets.length > 0 ? sets : undefined}
           />
         ) : (

@@ -18,6 +18,7 @@ interface Props {
   workoutId: string
   onRemove: () => void
   onDone: () => void
+  onMuscleGroupChange?: (group: string) => void
   initialSets?: ExistingSet[]
 }
 
@@ -28,7 +29,7 @@ interface SetRow {
   saved: boolean
 }
 
-export default function ExerciseBlock({ exercise, workoutId, onRemove, onDone, initialSets }: Props) {
+export default function ExerciseBlock({ exercise, workoutId, onRemove, onDone, onMuscleGroupChange, initialSets }: Props) {
   const [sets, setSets] = useState<SetRow[]>([])
   const [lastWeight, setLastWeight] = useState<number | null>(null)
   const [muscleGroup, setMuscleGroup] = useState<string | null>(exercise.muscle_group ?? null)
@@ -62,9 +63,41 @@ export default function ExerciseBlock({ exercise, workoutId, onRemove, onDone, i
       })
   }, [exercise.id, workoutId, initialSets])
 
-  function addSet() {
+  async function addSet() {
     const prev = sets[sets.length - 1]
-    setSets((s) => [...s, { reps: prev?.reps ?? '', weight: prev?.weight ?? '', saved: false }])
+    const repsStr = prev?.reps ?? ''
+    const weightStr = prev?.weight ?? ''
+    const tempIndex = sets.length
+    const setNumber = tempIndex + 1
+
+    setSets((s) => [...s, { reps: repsStr, weight: weightStr, saved: false }])
+
+    // Auto-save if prefill has valid values, so users who tap Add Set
+    // without modifying inputs still get the set persisted.
+    const reps = parseInt(repsStr)
+    const weight = parseFloat(weightStr)
+    if (reps && !isNaN(reps)) {
+      const { data, error } = await supabase
+        .from('sets')
+        .insert({
+          workout_id: workoutId,
+          exercise_id: exercise.id,
+          set_number: setNumber,
+          reps,
+          weight: isNaN(weight) ? null : weight,
+        })
+        .select()
+        .single()
+      if (error) {
+        alert(`Failed to save set: ${error.message}`)
+        return
+      }
+      if (data) {
+        setSets((s) =>
+          s.map((r, i) => (i === tempIndex ? { ...r, id: data.id as string, saved: true } : r))
+        )
+      }
+    }
   }
 
   function updateSet(index: number, field: 'reps' | 'weight', value: string) {
@@ -88,15 +121,23 @@ export default function ExerciseBlock({ exercise, workoutId, onRemove, onDone, i
     }
 
     if (row.id) {
-      await supabase
+      const { error } = await supabase
         .from('sets')
         .update({ reps: payload.reps, weight: payload.weight, set_number: setNumber })
         .eq('id', row.id)
+      if (error) {
+        alert(`Failed to save: ${error.message}`)
+        return
+      }
       setSets((s) => s.map((r, i) => (i === index ? { ...r, reps: repsStr, weight: weightStr, saved: true } : r)))
     } else {
-      const { data } = await supabase.from('sets').insert(payload).select().single()
+      const { data, error } = await supabase.from('sets').insert(payload).select().single()
+      if (error) {
+        alert(`Failed to save: ${error.message}`)
+        return
+      }
       if (data) {
-        setSets((s) => s.map((r, i) => (i === index ? { ...r, id: data.id, reps: repsStr, weight: weightStr, saved: true } : r)))
+        setSets((s) => s.map((r, i) => (i === index ? { ...r, id: data.id as string, reps: repsStr, weight: weightStr, saved: true } : r)))
       }
     }
   }
@@ -145,6 +186,7 @@ export default function ExerciseBlock({ exercise, workoutId, onRemove, onDone, i
           setMuscleGroup(g)
           setShowMusclePicker(false)
           await supabase.from('exercises').update({ muscle_group: g }).eq('id', exercise.id)
+          onMuscleGroupChange?.(g)
         }}
         onClose={() => setShowMusclePicker(false)}
       />
