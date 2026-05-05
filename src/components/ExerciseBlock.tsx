@@ -15,6 +15,7 @@ interface Props {
   exercise: Exercise
   workoutId: string
   onRemove: () => void
+  onDone: () => void
   initialSets?: ExistingSet[]
 }
 
@@ -25,7 +26,7 @@ interface SetRow {
   saved: boolean
 }
 
-export default function ExerciseBlock({ exercise, workoutId, onRemove, initialSets }: Props) {
+export default function ExerciseBlock({ exercise, workoutId, onRemove, onDone, initialSets }: Props) {
   const [sets, setSets] = useState<SetRow[]>([])
   const [lastWeight, setLastWeight] = useState<number | null>(null)
 
@@ -66,13 +67,14 @@ export default function ExerciseBlock({ exercise, workoutId, onRemove, initialSe
     setSets((s) => s.map((row, i) => (i === index ? { ...row, [field]: value, saved: false } : row)))
   }
 
-  async function saveSet(index: number) {
-    const row = sets[index]
-    const reps = parseInt(row.reps)
-    const weight = parseFloat(row.weight)
+  // Save using a fresh value from the input element to avoid any stale-state issues
+  async function saveSetWithValues(index: number, repsStr: string, weightStr: string) {
+    const reps = parseInt(repsStr)
+    const weight = parseFloat(weightStr)
     if (!reps || isNaN(reps)) return
 
     const setNumber = index + 1
+    const row = sets[index]
     const payload = {
       workout_id: workoutId,
       exercise_id: exercise.id,
@@ -86,14 +88,13 @@ export default function ExerciseBlock({ exercise, workoutId, onRemove, initialSe
         .from('sets')
         .update({ reps: payload.reps, weight: payload.weight, set_number: setNumber })
         .eq('id', row.id)
+      setSets((s) => s.map((r, i) => (i === index ? { ...r, reps: repsStr, weight: weightStr, saved: true } : r)))
     } else {
       const { data } = await supabase.from('sets').insert(payload).select().single()
       if (data) {
-        setSets((s) => s.map((r, i) => (i === index ? { ...r, id: data.id, saved: true } : r)))
-        return
+        setSets((s) => s.map((r, i) => (i === index ? { ...r, id: data.id, reps: repsStr, weight: weightStr, saved: true } : r)))
       }
     }
-    setSets((s) => s.map((r, i) => (i === index ? { ...r, saved: true } : r)))
   }
 
   async function removeSet(index: number) {
@@ -103,7 +104,6 @@ export default function ExerciseBlock({ exercise, workoutId, onRemove, initialSe
     const remaining = sets.filter((_, i) => i !== index)
     setSets(remaining)
 
-    // Renumber remaining sets in the database to keep them contiguous
     await Promise.all(
       remaining.map((r, i) =>
         r.id ? supabase.from('sets').update({ set_number: i + 1 }).eq('id', r.id) : null
@@ -112,26 +112,29 @@ export default function ExerciseBlock({ exercise, workoutId, onRemove, initialSe
   }
 
   return (
-    <div className="rounded-2xl p-5 mb-3" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
+    <div
+      className="rounded-2xl p-4 mb-3 overflow-hidden"
+      style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}
+    >
       <div className="flex items-center justify-between mb-1">
-        <h3 className="text-lg font-semibold">{exercise.name}</h3>
+        <h3 className="text-base font-semibold truncate pr-2">{exercise.name}</h3>
         <button
           onClick={onRemove}
-          className="text-sm font-medium transition-opacity active:opacity-60"
-          style={{ color: 'var(--text-tertiary)' }}
+          className="text-xs font-medium transition-opacity active:opacity-60 shrink-0"
+          style={{ color: 'var(--danger)' }}
         >
           Remove
         </button>
       </div>
 
       {lastWeight !== null && (
-        <p className="text-xs mb-4" style={{ color: 'var(--text-tertiary)' }}>
+        <p className="text-xs mb-3" style={{ color: 'var(--text-tertiary)' }}>
           Last session: {lastWeight} lbs
         </p>
       )}
-      {lastWeight === null && <div className="mb-3" />}
+      {lastWeight === null && <div className="mb-2" />}
 
-      <div className="grid grid-cols-[2.5rem_1fr_1fr_2rem] gap-3 text-xs font-medium mb-2" style={{ color: 'var(--text-tertiary)' }}>
+      <div className="grid grid-cols-[1.75rem_1fr_1fr_1.5rem] gap-2 text-xs font-medium mb-2" style={{ color: 'var(--text-tertiary)' }}>
         <span>Set</span>
         <span className="text-center">Reps</span>
         <span className="text-center">Lbs</span>
@@ -139,7 +142,7 @@ export default function ExerciseBlock({ exercise, workoutId, onRemove, initialSe
       </div>
 
       {sets.map((row, i) => (
-        <div key={row.id ?? i} className="grid grid-cols-[2.5rem_1fr_1fr_2rem] gap-3 items-center mb-2">
+        <div key={row.id ?? `new-${i}`} className="grid grid-cols-[1.75rem_1fr_1fr_1.5rem] gap-2 items-center mb-2">
           <span className="text-base font-semibold text-center" style={{ color: 'var(--text-secondary)' }}>
             {i + 1}
           </span>
@@ -149,12 +152,12 @@ export default function ExerciseBlock({ exercise, workoutId, onRemove, initialSe
             placeholder="—"
             value={row.reps}
             onChange={(e) => updateSet(i, 'reps', e.target.value)}
-            onBlur={() => saveSet(i)}
-            className="px-3 py-3 text-center text-base font-medium rounded-xl outline-none transition-all"
+            onBlur={(e) => saveSetWithValues(i, e.target.value, row.weight)}
+            className="w-full min-w-0 px-2 py-2.5 text-center text-base font-medium rounded-lg outline-none transition-colors"
             style={{
               background: 'var(--surface-elevated)',
               color: 'var(--text)',
-              border: `1px solid ${row.saved ? 'var(--success)' : 'var(--border)'}`,
+              border: '1px solid var(--border)',
             }}
           />
           <input
@@ -163,18 +166,19 @@ export default function ExerciseBlock({ exercise, workoutId, onRemove, initialSe
             placeholder="—"
             value={row.weight}
             onChange={(e) => updateSet(i, 'weight', e.target.value)}
-            onBlur={() => saveSet(i)}
-            className="px-3 py-3 text-center text-base font-medium rounded-xl outline-none transition-all"
+            onBlur={(e) => saveSetWithValues(i, row.reps, e.target.value)}
+            className="w-full min-w-0 px-2 py-2.5 text-center text-base font-medium rounded-lg outline-none transition-colors"
             style={{
               background: 'var(--surface-elevated)',
               color: 'var(--text)',
-              border: `1px solid ${row.saved ? 'var(--success)' : 'var(--border)'}`,
+              border: '1px solid var(--border)',
             }}
           />
           <button
             onClick={() => removeSet(i)}
-            className="text-2xl leading-none transition-opacity active:opacity-60"
+            className="text-xl leading-none transition-opacity active:opacity-60 text-center"
             style={{ color: 'var(--text-tertiary)' }}
+            aria-label="Remove set"
           >
             ×
           </button>
@@ -183,10 +187,18 @@ export default function ExerciseBlock({ exercise, workoutId, onRemove, initialSe
 
       <button
         onClick={addSet}
-        className="mt-3 w-full py-3 text-sm font-semibold rounded-xl transition-colors"
+        className="mt-2 w-full py-2.5 text-sm font-semibold rounded-lg transition-colors"
         style={{ background: 'var(--surface-elevated)', color: 'var(--accent)' }}
       >
         + Add Set
+      </button>
+
+      <button
+        onClick={onDone}
+        className="mt-2 w-full py-3 text-sm font-semibold rounded-lg transition-all active:scale-[0.98]"
+        style={{ background: 'var(--accent)', color: 'white' }}
+      >
+        Done
       </button>
     </div>
   )

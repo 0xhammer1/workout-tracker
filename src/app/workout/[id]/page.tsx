@@ -2,11 +2,44 @@
 
 import { useState, useEffect, use } from 'react'
 import { useRouter } from 'next/navigation'
+import confetti from 'canvas-confetti'
 import { supabase } from '@/lib/supabase'
 import type { Exercise, Workout } from '@/lib/types'
 import ExerciseBlock from '@/components/ExerciseBlock'
 import ExerciseSummary from '@/components/ExerciseSummary'
 import ExercisePicker from '@/components/ExercisePicker'
+
+function fireworks() {
+  const duration = 2500
+  const end = Date.now() + duration
+  const colors = ['#6366f1', '#a855f7', '#ec4899', '#f59e0b', '#10b981', '#06b6d4']
+
+  const burst = () => {
+    const timeLeft = end - Date.now()
+    if (timeLeft <= 0) return
+    const particleCount = Math.max(20, 50 * (timeLeft / duration))
+    confetti({
+      startVelocity: 30,
+      spread: 360,
+      ticks: 60,
+      zIndex: 9999,
+      particleCount,
+      colors,
+      origin: { x: Math.random() * 0.4 + 0.1, y: Math.random() * 0.3 + 0.2 },
+    })
+    confetti({
+      startVelocity: 30,
+      spread: 360,
+      ticks: 60,
+      zIndex: 9999,
+      particleCount,
+      colors,
+      origin: { x: Math.random() * 0.4 + 0.5, y: Math.random() * 0.3 + 0.2 },
+    })
+    setTimeout(burst, 300)
+  }
+  burst()
+}
 
 interface SetData {
   id: string
@@ -141,7 +174,8 @@ export default function WorkoutPage({ params }: { params: Promise<{ id: string }
   async function finishWorkout() {
     setSaving(true)
     await supabase.from('workouts').update({ notes: notes || null }).eq('id', id)
-    router.push('/')
+    fireworks()
+    setTimeout(() => router.push('/'), 2200)
   }
 
   if (loading || !workout) {
@@ -205,6 +239,7 @@ export default function WorkoutPage({ params }: { params: Promise<{ id: string }
             exercise={exercise}
             workoutId={id}
             onRemove={() => removeExercise(exercise.id)}
+            onDone={() => toggleEdit(exercise.id)}
             initialSets={sets.length > 0 ? sets : undefined}
           />
         ) : (

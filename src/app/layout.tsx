@@ -6,7 +6,7 @@ import Nav from '@/components/Nav'
 const geist = Geist({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'Dino-Sore',
+  title: 'Workout Tracker',
   description: 'Track your gains',
 }
 
