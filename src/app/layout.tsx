@@ -8,12 +8,12 @@ import AuthGate from '@/components/AuthGate'
 const geist = Geist({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'Workout Tracker',
+  title: 'Lift Labs',
   description: 'Track your gains',
   manifest: '/manifest.json',
   appleWebApp: {
     capable: true,
-    title: 'Workout',
+    title: 'Lift Labs',
     statusBarStyle: 'black-translucent',
   },
   icons: {

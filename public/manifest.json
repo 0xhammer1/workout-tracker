@@ -1,6 +1,6 @@
 {
-  "name": "Workout Tracker",
-  "short_name": "Workout",
+  "name": "Lift Labs",
+  "short_name": "Lift Labs",
   "description": "Track your gains",
   "start_url": "/",
   "scope": "/",

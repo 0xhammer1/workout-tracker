@@ -90,7 +90,7 @@ async function fetchAllExercises() {
   const all = []
   while (url) {
     process.stdout.write(`Fetching ${url}\n`)
-    const r = await fetch(url, { headers: { 'User-Agent': 'workout-tracker-import/1.0' } })
+    const r = await fetch(url, { headers: { 'User-Agent': 'lift-labs-import/1.0' } })
     if (!r.ok) throw new Error(`wger ${r.status}: ${await r.text()}`)
     const json = await r.json()
     all.push(...(json.results ?? []))

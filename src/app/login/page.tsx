@@ -23,7 +23,7 @@ export default function LoginPage() {
     <div className="min-h-screen flex flex-col items-center justify-center px-6">
       <div className="w-full max-w-sm flex flex-col items-center">
         <div className="text-5xl mb-3">💪</div>
-        <h1 className="text-2xl font-bold tracking-tight mb-1">Workout Tracker</h1>
+        <h1 className="text-2xl font-bold tracking-tight mb-1">Lift Labs</h1>
         <p className="text-sm mb-10" style={{ color: 'var(--text-secondary)' }}>
           Sign in to track your gains.
         </p>

@@ -1,9 +1,9 @@
-# Workout Tracker — Setup
+# Lift Labs — Setup
 
 ## 1. Create a Supabase project
 
 1. Go to supabase.com and create a free account
-2. Click "New Project", give it a name like "workout-tracker"
+2. Click "New Project", give it a name like "lift-labs"
 3. Once provisioned, go to **SQL Editor** and paste the contents of `supabase-schema.sql`, then click **Run**
 
 ## 2. Get your API keys
