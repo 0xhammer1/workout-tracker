@@ -41,7 +41,10 @@ export default function HistoryPage() {
         .order('date', { ascending: false })
 
       const ws = wsRaw as Workout[] | null
-      if (!ws) { setLoading(false); return }
+      if (!ws) {
+        setLoading(false)
+        return
+      }
 
       const summaries: WorkoutSummary[] = await Promise.all(
         ws.map(async (w) => {
@@ -62,6 +65,7 @@ export default function HistoryPage() {
 
   async function deleteWorkout(e: React.MouseEvent, workoutId: string) {
     e.preventDefault()
+    e.stopPropagation()
     if (!confirm('Delete this workout?')) return
     await supabase.from('workouts').delete().eq('id', workoutId)
     setAllWorkouts((prev) => prev.filter((w) => w.id !== workoutId))
@@ -72,17 +76,20 @@ export default function HistoryPage() {
 
   return (
     <div>
-      <h1 className="text-3xl font-bold tracking-tight mt-8 mb-6">History</h1>
+      <h1 className="text-3xl font-bold tracking-tight pt-8 mb-6">History</h1>
 
-      <div className="flex gap-px mb-8" style={{ border: '1px solid #1c1c1c' }}>
+      <div
+        className="flex p-1 mb-6 rounded-xl"
+        style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}
+      >
         {PERIODS.map(({ label, value }) => (
           <button
             key={value}
             onClick={() => setPeriod(value)}
-            className="flex-1 py-2.5 text-xs tracking-widest uppercase transition-colors"
+            className="flex-1 py-2 text-sm font-semibold rounded-lg transition-all"
             style={{
-              background: period === value ? 'var(--gold)' : '#0d0d0d',
-              color: period === value ? '#080808' : '#555',
+              background: period === value ? 'var(--surface-elevated)' : 'transparent',
+              color: period === value ? 'var(--text)' : 'var(--text-secondary)',
             }}
           >
             {label}
@@ -91,26 +98,31 @@ export default function HistoryPage() {
       </div>
 
       {loading ? (
-        <div className="space-y-px">
+        <div className="space-y-2">
           {[...Array(5)].map((_, i) => (
-            <div key={i} className="h-16 animate-pulse" style={{ background: '#111' }} />
+            <div key={i} className="h-20 rounded-2xl animate-pulse" style={{ background: 'var(--surface)' }} />
           ))}
         </div>
       ) : workouts.length === 0 ? (
-        <p className="text-sm text-center py-16" style={{ color: '#444' }}>
-          No workouts in this period.
-        </p>
+        <div
+          className="text-center py-12 rounded-2xl"
+          style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}
+        >
+          <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
+            No workouts in this period.
+          </p>
+        </div>
       ) : (
-        <div>
-          {workouts.map((w) => (
+        <div className="rounded-2xl overflow-hidden" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
+          {workouts.map((w, i) => (
             <Link
               key={w.id}
               href={`/workout/${w.id}`}
-              className="flex items-center justify-between py-4 border-b transition-opacity hover:opacity-70"
-              style={{ borderColor: '#1c1c1c' }}
+              className="flex items-center justify-between px-4 py-4 transition-colors active:bg-white/5"
+              style={{ borderTop: i === 0 ? 'none' : '1px solid var(--border)' }}
             >
-              <div>
-                <div className="text-sm font-medium" style={{ color: '#f0ede8' }}>
+              <div className="flex-1 min-w-0">
+                <div className="text-base font-medium">
                   {new Date(w.date + 'T12:00:00').toLocaleDateString('en-US', {
                     weekday: 'long',
                     month: 'short',
@@ -118,20 +130,25 @@ export default function HistoryPage() {
                     year: 'numeric',
                   })}
                 </div>
-                <div className="text-xs mt-0.5 tracking-wide" style={{ color: '#444' }}>
-                  {w.exerciseCount} exercise{w.exerciseCount !== 1 ? 's' : ''} · {w.setCount} set{w.setCount !== 1 ? 's' : ''}
+                <div className="text-sm mt-0.5" style={{ color: 'var(--text-secondary)' }}>
+                  {w.exerciseCount} exercise{w.exerciseCount !== 1 ? 's' : ''} · {w.setCount} set
+                  {w.setCount !== 1 ? 's' : ''}
                 </div>
-                {w.notes && <div className="text-xs mt-0.5 italic" style={{ color: '#555' }}>{w.notes}</div>}
+                {w.notes && (
+                  <div className="text-sm mt-0.5 truncate" style={{ color: 'var(--text-tertiary)' }}>
+                    {w.notes}
+                  </div>
+                )}
               </div>
-              <div className="flex items-center gap-4 ml-4 shrink-0">
+              <div className="flex items-center gap-3 ml-3 shrink-0">
                 <button
                   onClick={(e) => deleteWorkout(e, w.id)}
-                  className="text-xs tracking-wider uppercase transition-opacity hover:opacity-60"
-                  style={{ color: '#6b2020' }}
+                  className="text-sm font-medium transition-opacity active:opacity-60"
+                  style={{ color: 'var(--danger)' }}
                 >
                   Delete
                 </button>
-                <span style={{ color: 'var(--gold)' }}>→</span>
+                <span className="text-lg" style={{ color: 'var(--text-tertiary)' }}>›</span>
               </div>
             </Link>
           ))}

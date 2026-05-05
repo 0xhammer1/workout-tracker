@@ -28,7 +28,10 @@ export default function ProgressPage() {
         const unique: Exercise[] = []
         for (const row of data) {
           const ex = row.exercises as unknown as Exercise
-          if (!seen.has(ex.id)) { seen.add(ex.id); unique.push(ex) }
+          if (!seen.has(ex.id)) {
+            seen.add(ex.id)
+            unique.push(ex)
+          }
         }
         unique.sort((a, b) => a.name.localeCompare(b.name))
         setExercises(unique)
@@ -46,12 +49,16 @@ export default function ProgressPage() {
       .not('weight', 'is', null)
       .order('created_at', { ascending: true })
       .then(({ data }) => {
-        if (!data) { setChartData([]); setLoading(false); return }
+        if (!data) {
+          setChartData([])
+          setLoading(false)
+          return
+        }
         const byDate = new Map<string, { weights: number[]; volume: number }>()
         for (const row of data) {
           const date = (row.workouts as unknown as { date: string }).date
-          const w = row.weight as number
-          const r = row.reps ?? 0
+          const w = Number(row.weight)
+          const r = Number(row.reps ?? 0)
           if (!byDate.has(date)) byDate.set(date, { weights: [], volume: 0 })
           const entry = byDate.get(date)!
           entry.weights.push(w)
@@ -73,36 +80,56 @@ export default function ProgressPage() {
 
   return (
     <div>
-      <h1 className="text-3xl font-bold tracking-tight mt-8 mb-6">Progress</h1>
+      <h1 className="text-3xl font-bold tracking-tight pt-8 mb-6">Progress</h1>
 
       {exercises.length === 0 ? (
-        <p className="text-sm text-center py-16" style={{ color: '#444' }}>
-          Log some workouts first to see progress charts.
-        </p>
+        <div
+          className="text-center py-12 rounded-2xl"
+          style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}
+        >
+          <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
+            Log some workouts first to see progress charts.
+          </p>
+        </div>
       ) : (
         <>
-          <div className="mb-4" style={{ border: '1px solid #1c1c1c' }}>
+          <div className="relative mb-3">
             <select
               value={selectedId}
               onChange={(e) => setSelectedId(e.target.value)}
-              className="w-full px-4 py-3 text-sm outline-none appearance-none"
-              style={{ background: '#0d0d0d', color: '#f0ede8' }}
+              className="w-full px-4 py-3.5 text-base font-medium rounded-2xl outline-none appearance-none pr-10"
+              style={{
+                background: 'var(--surface)',
+                color: 'var(--text)',
+                border: '1px solid var(--border)',
+              }}
             >
               {exercises.map((ex) => (
-                <option key={ex.id} value={ex.id}>{ex.name}</option>
+                <option key={ex.id} value={ex.id}>
+                  {ex.name}
+                </option>
               ))}
             </select>
+            <span
+              className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-sm"
+              style={{ color: 'var(--text-tertiary)' }}
+            >
+              ▼
+            </span>
           </div>
 
-          <div className="flex gap-px mb-6" style={{ border: '1px solid #1c1c1c' }}>
+          <div
+            className="flex p-1 mb-4 rounded-xl"
+            style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}
+          >
             {(['maxWeight', 'totalVolume'] as const).map((m) => (
               <button
                 key={m}
                 onClick={() => setMetric(m)}
-                className="flex-1 py-2.5 text-xs tracking-widest uppercase transition-colors"
+                className="flex-1 py-2 text-sm font-semibold rounded-lg transition-all"
                 style={{
-                  background: metric === m ? 'var(--gold)' : '#0d0d0d',
-                  color: metric === m ? '#080808' : '#555',
+                  background: metric === m ? 'var(--surface-elevated)' : 'transparent',
+                  color: metric === m ? 'var(--text)' : 'var(--text-secondary)',
                 }}
               >
                 {m === 'maxWeight' ? 'Max Weight' : 'Volume'}
@@ -111,27 +138,39 @@ export default function ProgressPage() {
           </div>
 
           {selectedExercise && (
-            <div className="p-5" style={{ border: '1px solid #1c1c1c' }}>
-              <p className="text-xs tracking-widest uppercase mb-5" style={{ color: 'var(--gold)' }}>
-                {selectedExercise.name}
-              </p>
+            <div className="p-5 rounded-2xl" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
               {loading ? (
                 <div className="h-48 flex items-center justify-center">
-                  <div className="w-5 h-5 border border-t-transparent rounded-full animate-spin" style={{ borderColor: 'var(--gold)', borderTopColor: 'transparent' }} />
+                  <div
+                    className="w-6 h-6 border-2 border-t-transparent rounded-full animate-spin"
+                    style={{ borderColor: 'var(--accent)', borderTopColor: 'transparent' }}
+                  />
                 </div>
               ) : (
                 <ProgressChart data={chartData} metric={metric} />
               )}
               {chartData.length > 0 && (
-                <div className="mt-6 grid grid-cols-3 gap-4">
+                <div className="mt-5 grid grid-cols-3 gap-2">
                   {[
                     { label: 'Sessions', value: String(chartData.length) },
-                    { label: 'Best', value: `${Math.max(...chartData.map((d) => d.maxWeight))} lbs` },
-                    { label: 'Last', value: `${chartData[chartData.length - 1]?.maxWeight} lbs` },
+                    {
+                      label: 'Best',
+                      value: `${Math.max(...chartData.map((d) => d[metric]))} lbs`,
+                    },
+                    {
+                      label: 'Last',
+                      value: `${chartData[chartData.length - 1]?.[metric]} lbs`,
+                    },
                   ].map(({ label, value }) => (
-                    <div key={label} className="text-center py-3" style={{ border: '1px solid #1c1c1c' }}>
-                      <div className="text-base font-semibold" style={{ color: '#f0ede8' }}>{value}</div>
-                      <div className="text-xs tracking-widest uppercase mt-1" style={{ color: '#444' }}>{label}</div>
+                    <div
+                      key={label}
+                      className="text-center py-3 rounded-xl"
+                      style={{ background: 'var(--surface-elevated)' }}
+                    >
+                      <div className="text-base font-bold">{value}</div>
+                      <div className="text-xs mt-0.5" style={{ color: 'var(--text-secondary)' }}>
+                        {label}
+                      </div>
                     </div>
                   ))}
                 </div>

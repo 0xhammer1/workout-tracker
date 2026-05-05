@@ -24,46 +24,51 @@ interface Props {
 export default function ProgressChart({ data, metric }: Props) {
   if (data.length === 0) {
     return (
-      <div className="flex items-center justify-center h-48 text-xs tracking-widest uppercase" style={{ color: '#444' }}>
+      <div className="flex items-center justify-center h-48 text-sm" style={{ color: 'var(--text-tertiary)' }}>
         No data yet
       </div>
     )
   }
 
   return (
-    <div className="h-48">
+    <div className="h-56">
       <ResponsiveContainer width="100%" height="100%">
-        <LineChart data={data} margin={{ top: 4, right: 4, left: -24, bottom: 0 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="#1a1a1a" />
+        <LineChart data={data} margin={{ top: 8, right: 8, left: -20, bottom: 0 }}>
+          <CartesianGrid strokeDasharray="3 3" stroke="#26272d" />
           <XAxis
             dataKey="date"
-            tick={{ fontSize: 10, fill: '#444' }}
+            tick={{ fontSize: 11, fill: '#9ca0a8' }}
             tickFormatter={(v) => {
               const d = new Date(v)
               return `${d.getMonth() + 1}/${d.getDate()}`
             }}
-            axisLine={{ stroke: '#1c1c1c' }}
+            axisLine={{ stroke: '#26272d' }}
             tickLine={false}
           />
           <YAxis
-            tick={{ fontSize: 10, fill: '#444' }}
-            axisLine={{ stroke: '#1c1c1c' }}
+            tick={{ fontSize: 11, fill: '#9ca0a8' }}
+            axisLine={{ stroke: '#26272d' }}
             tickLine={false}
           />
           <Tooltip
-            contentStyle={{ background: '#0d0d0d', border: '1px solid #1c1c1c', borderRadius: 0 }}
-            labelStyle={{ color: '#888', fontSize: 11 }}
-            itemStyle={{ color: '#C4A044', fontSize: 12 }}
+            contentStyle={{
+              background: '#1c1d22',
+              border: '1px solid #3a3b42',
+              borderRadius: 12,
+              fontSize: 13,
+            }}
+            labelStyle={{ color: '#9ca0a8', fontSize: 12, marginBottom: 4 }}
+            itemStyle={{ color: '#f5f5f7' }}
             labelFormatter={(v) => new Date(v).toLocaleDateString()}
             formatter={(v) => [`${v} lbs`]}
           />
           <Line
             type="monotone"
             dataKey={metric}
-            stroke="#C4A044"
-            strokeWidth={1.5}
-            dot={{ fill: '#C4A044', r: 3, strokeWidth: 0 }}
-            activeDot={{ r: 5, fill: '#C4A044', strokeWidth: 0 }}
+            stroke="#6366f1"
+            strokeWidth={2.5}
+            dot={{ fill: '#6366f1', r: 4, strokeWidth: 0 }}
+            activeDot={{ r: 6, fill: '#6366f1', strokeWidth: 2, stroke: '#0a0a0c' }}
           />
         </LineChart>
       </ResponsiveContainer>

@@ -38,60 +38,73 @@ export default function Home() {
     }
   }
 
+  const greeting = (() => {
+    const h = new Date().getHours()
+    if (h < 12) return 'Good morning'
+    if (h < 18) return 'Good afternoon'
+    return 'Good evening'
+  })()
+
   return (
     <div>
-      <div className="mt-10 mb-10">
-        <p className="text-xs tracking-widest uppercase mb-2" style={{ color: 'var(--gold)' }}>
-          Good to see you
+      <header className="pt-8 pb-8">
+        <p className="text-sm font-medium" style={{ color: 'var(--text-secondary)' }}>
+          {greeting}
         </p>
-        <h1 className="text-4xl font-bold tracking-tight" style={{ color: '#f0ede8' }}>
-          Welcome, Mitchell.
-        </h1>
-        <p className="mt-2 text-sm tracking-wider" style={{ color: '#555' }}>
+        <h1 className="text-3xl font-bold tracking-tight mt-1">Welcome, Mitchell</h1>
+        <p className="text-base mt-2" style={{ color: 'var(--text-secondary)' }}>
           Track your gains.
         </p>
-      </div>
+      </header>
 
       <button
         onClick={startWorkout}
         disabled={starting}
-        className="w-full font-semibold text-sm tracking-widest uppercase py-4 mb-10 transition-colors disabled:opacity-40"
-        style={{ background: 'var(--gold)', color: '#080808', letterSpacing: '0.15em' }}
+        className="w-full font-semibold text-base py-4 rounded-2xl transition-all active:scale-[0.98] disabled:opacity-60 mb-10"
+        style={{ background: 'var(--accent)', color: 'white' }}
       >
-        {starting ? 'Starting...' : 'Start Workout'}
+        {starting ? 'Starting…' : 'Start Workout'}
       </button>
 
       <section>
-        <h2 className="text-xs tracking-widest uppercase mb-4" style={{ color: '#444' }}>
+        <h2 className="text-sm font-semibold mb-3" style={{ color: 'var(--text-secondary)' }}>
           Recent Workouts
         </h2>
         {loading ? (
           <div className="space-y-2">
             {[...Array(3)].map((_, i) => (
-              <div key={i} className="h-14 rounded animate-pulse" style={{ background: '#111' }} />
+              <div key={i} className="h-16 rounded-xl animate-pulse" style={{ background: 'var(--surface)' }} />
             ))}
           </div>
         ) : recentWorkouts.length === 0 ? (
-          <p className="text-sm text-center py-10" style={{ color: '#444' }}>
-            No workouts yet.
-          </p>
+          <div className="text-center py-12 rounded-2xl" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
+            <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>No workouts yet.</p>
+            <p className="text-xs mt-1" style={{ color: 'var(--text-tertiary)' }}>Tap Start to begin.</p>
+          </div>
         ) : (
-          <div className="space-y-px">
-            {recentWorkouts.map((w) => (
+          <div className="rounded-2xl overflow-hidden" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
+            {recentWorkouts.map((w, i) => (
               <Link
                 key={w.id}
                 href={`/workout/${w.id}`}
-                className="flex items-center justify-between px-0 py-4 border-b transition-opacity hover:opacity-70"
-                style={{ borderColor: '#1c1c1c' }}
+                className="flex items-center justify-between px-4 py-4 transition-colors active:bg-white/5"
+                style={{ borderTop: i === 0 ? 'none' : '1px solid var(--border)' }}
               >
-                <span className="text-sm" style={{ color: '#f0ede8' }}>
-                  {new Date(w.date + 'T12:00:00').toLocaleDateString('en-US', {
-                    weekday: 'long',
-                    month: 'short',
-                    day: 'numeric',
-                  })}
-                </span>
-                <span className="text-xs" style={{ color: 'var(--gold)' }}>→</span>
+                <div>
+                  <div className="text-base font-medium">
+                    {new Date(w.date + 'T12:00:00').toLocaleDateString('en-US', {
+                      weekday: 'long',
+                      month: 'short',
+                      day: 'numeric',
+                    })}
+                  </div>
+                  {w.notes && (
+                    <div className="text-sm mt-0.5" style={{ color: 'var(--text-secondary)' }}>
+                      {w.notes}
+                    </div>
+                  )}
+                </div>
+                <span className="text-lg" style={{ color: 'var(--text-tertiary)' }}>›</span>
               </Link>
             ))}
           </div>

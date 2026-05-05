@@ -26,7 +26,6 @@ export default function WorkoutPage({ params }: { params: Promise<{ id: string }
   const [workout, setWorkout] = useState<Workout | null>(null)
   const [entries, setEntries] = useState<ExerciseEntry[]>([])
   const [editingIds, setEditingIds] = useState<Set<string>>(new Set())
-  const [isNew, setIsNew] = useState(false)
   const [showPicker, setShowPicker] = useState(false)
   const [notes, setNotes] = useState('')
   const [saving, setSaving] = useState(false)
@@ -46,24 +45,27 @@ export default function WorkoutPage({ params }: { params: Promise<{ id: string }
         .eq('workout_id', id)
         .order('set_number', { ascending: true })
 
-      if (!setsRaw || setsRaw.length === 0) {
-        setIsNew(true)
-        setLoading(false)
-        return
+      if (setsRaw && setsRaw.length > 0) {
+        const map = new Map<string, ExerciseEntry>()
+        for (const row of setsRaw) {
+          const ex = row.exercises as unknown as Exercise
+          if (!map.has(ex.id)) map.set(ex.id, { exercise: ex, sets: [] })
+          map.get(ex.id)!.sets.push({
+            id: row.id,
+            set_number: row.set_number,
+            reps: row.reps !== null ? Number(row.reps) : null,
+            weight: row.weight !== null ? Number(row.weight) : null,
+          })
+        }
+        setEntries(Array.from(map.values()))
       }
 
-      const map = new Map<string, ExerciseEntry>()
-      for (const row of setsRaw) {
-        const ex = row.exercises as unknown as Exercise
-        if (!map.has(ex.id)) map.set(ex.id, { exercise: ex, sets: [] })
-        map.get(ex.id)!.sets.push({
-          id: row.id,
-          set_number: row.set_number,
-          reps: row.reps,
-          weight: row.weight,
-        })
+      // If workout is from today and empty, default to edit mode
+      const today = new Date().toISOString().split('T')[0]
+      if (w?.date === today && (!setsRaw || setsRaw.length === 0)) {
+        // No exercises yet, picker will be shown
       }
-      setEntries(Array.from(map.values()))
+
       setLoading(false)
     }
     load()
@@ -74,20 +76,66 @@ export default function WorkoutPage({ params }: { params: Promise<{ id: string }
     if (!entries.find((e) => e.exercise.id === ex.id)) {
       setEntries((prev) => [...prev, { exercise: ex, sets: [] }])
       setEditingIds((prev) => new Set(prev).add(ex.id))
+    } else {
+      setEditingIds((prev) => new Set(prev).add(ex.id))
     }
   }
 
   function toggleEdit(exerciseId: string) {
     setEditingIds((prev) => {
       const next = new Set(prev)
-      next.has(exerciseId) ? next.delete(exerciseId) : next.add(exerciseId)
+      if (next.has(exerciseId)) {
+        next.delete(exerciseId)
+        // Reload sets for this exercise from DB to reflect any changes
+        reloadExerciseSets(exerciseId)
+      } else {
+        next.add(exerciseId)
+      }
       return next
     })
   }
 
-  function removeExercise(exerciseId: string) {
+  async function reloadExerciseSets(exerciseId: string) {
+    const { data } = await supabase
+      .from('sets')
+      .select('id, set_number, reps, weight')
+      .eq('workout_id', id)
+      .eq('exercise_id', exerciseId)
+      .order('set_number', { ascending: true })
+
+    if (!data) return
+
+    setEntries((prev) =>
+      prev.map((e) =>
+        e.exercise.id === exerciseId
+          ? {
+              ...e,
+              sets: data.map((s) => ({
+                id: s.id,
+                set_number: s.set_number,
+                reps: s.reps !== null ? Number(s.reps) : null,
+                weight: s.weight !== null ? Number(s.weight) : null,
+              })),
+            }
+          : e
+      )
+    )
+  }
+
+  async function removeExercise(exerciseId: string) {
+    // Delete all sets for this exercise in this workout
+    await supabase
+      .from('sets')
+      .delete()
+      .eq('workout_id', id)
+      .eq('exercise_id', exerciseId)
+
     setEntries((prev) => prev.filter((e) => e.exercise.id !== exerciseId))
-    setEditingIds((prev) => { const n = new Set(prev); n.delete(exerciseId); return n })
+    setEditingIds((prev) => {
+      const n = new Set(prev)
+      n.delete(exerciseId)
+      return n
+    })
   }
 
   async function finishWorkout() {
@@ -99,7 +147,10 @@ export default function WorkoutPage({ params }: { params: Promise<{ id: string }
   if (loading || !workout) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="w-5 h-5 border border-t-transparent rounded-full animate-spin" style={{ borderColor: 'var(--gold)', borderTopColor: 'transparent' }} />
+        <div
+          className="w-6 h-6 border-2 border-t-transparent rounded-full animate-spin"
+          style={{ borderColor: 'var(--accent)', borderTopColor: 'transparent' }}
+        />
       </div>
     )
   }
@@ -112,20 +163,40 @@ export default function WorkoutPage({ params }: { params: Promise<{ id: string }
 
   return (
     <div>
-      <div className="flex items-start justify-between mt-8 mb-8">
+      <div className="flex items-start justify-between pt-4 mb-6">
         <div>
-          <p className="text-xs tracking-widest uppercase mb-1" style={{ color: 'var(--gold)' }}>Workout</p>
+          <button
+            onClick={() => router.back()}
+            className="text-sm font-medium mb-2 transition-opacity active:opacity-60"
+            style={{ color: 'var(--text-secondary)' }}
+          >
+            ‹ Back
+          </button>
           <h1 className="text-2xl font-bold tracking-tight">{dateLabel}</h1>
         </div>
         <button
           onClick={finishWorkout}
           disabled={saving}
-          className="text-xs tracking-widest uppercase py-2 px-4 transition-opacity disabled:opacity-40 mt-1"
-          style={{ background: 'var(--gold)', color: '#080808' }}
+          className="text-sm font-semibold py-2 px-4 rounded-full transition-all active:scale-95 disabled:opacity-60 mt-7"
+          style={{ background: 'var(--accent)', color: 'white' }}
         >
-          {saving ? 'Saving...' : 'Done'}
+          {saving ? 'Saving…' : 'Done'}
         </button>
       </div>
+
+      {entries.length === 0 && (
+        <div
+          className="text-center py-12 rounded-2xl mb-3"
+          style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}
+        >
+          <p className="text-base font-medium" style={{ color: 'var(--text-secondary)' }}>
+            No exercises yet
+          </p>
+          <p className="text-sm mt-1" style={{ color: 'var(--text-tertiary)' }}>
+            Add an exercise to get started.
+          </p>
+        </div>
+      )}
 
       {entries.map(({ exercise, sets }) =>
         editingIds.has(exercise.id) ? (
@@ -146,23 +217,21 @@ export default function WorkoutPage({ params }: { params: Promise<{ id: string }
         )
       )}
 
-      {(isNew || entries.length > 0) && (
-        <button
-          onClick={() => setShowPicker(true)}
-          className="w-full py-4 text-xs tracking-widest uppercase mb-4 transition-opacity hover:opacity-70"
-          style={{ color: 'var(--gold)', border: '1px solid #1c1c1c' }}
-        >
-          + Add Exercise
-        </button>
-      )}
+      <button
+        onClick={() => setShowPicker(true)}
+        className="w-full py-4 text-base font-semibold rounded-2xl transition-colors mb-4"
+        style={{ background: 'var(--surface)', color: 'var(--accent)', border: '1px solid var(--border)' }}
+      >
+        + Add Exercise
+      </button>
 
       <textarea
-        placeholder="Notes..."
+        placeholder="Notes…"
         value={notes}
         onChange={(e) => setNotes(e.target.value)}
         rows={2}
-        className="w-full px-4 py-3 text-sm outline-none resize-none mb-4"
-        style={{ background: '#0d0d0d', color: '#888', border: '1px solid #1c1c1c' }}
+        className="w-full px-4 py-3 text-sm rounded-2xl outline-none resize-none"
+        style={{ background: 'var(--surface)', color: 'var(--text)', border: '1px solid var(--border)' }}
       />
 
       {showPicker && <ExercisePicker onSelect={addExercise} onClose={() => setShowPicker(false)} />}

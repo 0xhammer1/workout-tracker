@@ -14,41 +14,44 @@ interface Props {
 }
 
 export default function ExerciseSummary({ name, sets, onEdit }: Props) {
+  const sortedSets = [...sets].sort((a, b) => a.set_number - b.set_number)
+
   return (
-    <div className="mb-6 pb-6 border-b" style={{ borderColor: '#1c1c1c' }}>
+    <div className="rounded-2xl p-5 mb-3" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-sm font-semibold tracking-widest uppercase" style={{ color: '#f0ede8' }}>
-          {name}
-        </h3>
+        <h3 className="text-lg font-semibold">{name}</h3>
         <button
           onClick={onEdit}
-          className="text-xs tracking-widest uppercase transition-opacity hover:opacity-70"
-          style={{ color: 'var(--gold)' }}
+          className="text-sm font-semibold transition-opacity active:opacity-60"
+          style={{ color: 'var(--accent)' }}
         >
           Edit
         </button>
       </div>
 
-      <div className="grid grid-cols-[2rem_1fr_1fr] gap-3 text-xs tracking-widest uppercase mb-2" style={{ color: '#444' }}>
-        <span>Set</span>
-        <span>Reps</span>
-        <span>Lbs</span>
-      </div>
-
-      {sets.length === 0 ? (
-        <p className="text-xs" style={{ color: '#444' }}>No sets logged.</p>
+      {sortedSets.length === 0 ? (
+        <p className="text-sm" style={{ color: 'var(--text-tertiary)' }}>No sets logged.</p>
       ) : (
-        sets.map((s) => (
-          <div key={s.id} className="grid grid-cols-[2rem_1fr_1fr] gap-3 py-2 border-b" style={{ borderColor: '#141414' }}>
-            <span className="text-xs text-center" style={{ color: '#555' }}>{s.set_number}</span>
-            <span className="text-sm text-center" style={{ color: '#f0ede8' }}>
-              {s.reps ?? '—'}
-            </span>
-            <span className="text-sm text-center" style={{ color: '#f0ede8' }}>
-              {s.weight ?? '—'}
-            </span>
+        <>
+          <div className="grid grid-cols-[2.5rem_1fr_1fr] gap-3 text-xs font-medium mb-2" style={{ color: 'var(--text-tertiary)' }}>
+            <span>Set</span>
+            <span className="text-center">Reps</span>
+            <span className="text-center">Lbs</span>
           </div>
-        ))
+          {sortedSets.map((s, i) => (
+            <div
+              key={s.id}
+              className="grid grid-cols-[2.5rem_1fr_1fr] gap-3 py-2.5"
+              style={{ borderTop: i === 0 ? 'none' : '1px solid var(--border)' }}
+            >
+              <span className="text-base font-semibold text-center" style={{ color: 'var(--text-secondary)' }}>
+                {i + 1}
+              </span>
+              <span className="text-base text-center font-medium">{s.reps ?? '—'}</span>
+              <span className="text-base text-center font-medium">{s.weight ?? '—'}</span>
+            </div>
+          ))}
+        </>
       )}
     </div>
   )

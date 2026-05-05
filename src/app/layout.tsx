@@ -13,14 +13,14 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
-  themeColor: '#080808',
+  themeColor: '#0a0a0c',
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
-      <body className={`${geist.className} min-h-screen antialiased`} style={{ background: '#080808', color: '#f0ede8' }}>
-        <div className="max-w-lg mx-auto px-5 pb-28 pt-4">
+      <body className={`${geist.className} min-h-screen antialiased`}>
+        <div className="max-w-lg mx-auto px-5 pb-28 pt-2">
           {children}
         </div>
         <Nav />

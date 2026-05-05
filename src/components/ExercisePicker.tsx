@@ -27,7 +27,7 @@ export default function ExercisePicker({ onSelect, onClose }: Props) {
   )
 
   async function createAndSelect() {
-    const name = (query).trim()
+    const name = query.trim()
     if (!name) return
     setLoading(true)
     const { data, error } = await supabase
@@ -41,47 +41,49 @@ export default function ExercisePicker({ onSelect, onClose }: Props) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end" style={{ background: 'rgba(0,0,0,0.85)' }} onClick={onClose}>
+    <div className="fixed inset-0 z-50 flex items-end" style={{ background: 'rgba(0,0,0,0.6)' }} onClick={onClose}>
       <div
-        className="w-full max-w-lg mx-auto flex flex-col"
-        style={{ background: '#0d0d0d', borderTop: '1px solid #1c1c1c', maxHeight: '75vh' }}
+        className="w-full max-w-lg mx-auto flex flex-col rounded-t-3xl"
+        style={{ background: 'var(--surface)', borderTop: '1px solid var(--border)', maxHeight: '80vh' }}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="p-4" style={{ borderBottom: '1px solid #1c1c1c' }}>
+        <div className="flex justify-center pt-3 pb-1">
+          <div className="w-10 h-1 rounded-full" style={{ background: 'var(--border-strong)' }} />
+        </div>
+        <div className="px-5 pt-2 pb-3">
           <input
             autoFocus
             type="text"
-            placeholder="Search exercises..."
+            placeholder="Search or add exercise…"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            className="w-full px-4 py-3 text-sm outline-none"
-            style={{ background: '#111', color: '#f0ede8', border: '1px solid #222' }}
+            className="w-full px-4 py-3 text-base rounded-xl outline-none"
+            style={{ background: 'var(--surface-elevated)', color: 'var(--text)', border: '1px solid var(--border)' }}
           />
         </div>
-        <div className="overflow-y-auto flex-1">
+        <div className="overflow-y-auto flex-1 px-2">
           {filtered.map((ex) => (
             <button
               key={ex.id}
               onClick={() => onSelect(ex)}
-              className="w-full text-left px-5 py-4 text-sm transition-opacity hover:opacity-70"
-              style={{ color: '#f0ede8', borderBottom: '1px solid #141414' }}
+              className="w-full text-left px-3 py-3.5 text-base rounded-xl transition-colors active:bg-white/5"
+              style={{ color: 'var(--text)' }}
             >
               {ex.name}
             </button>
           ))}
           {query && filtered.length === 0 && (
-            <div className="p-5">
-              <button
-                onClick={createAndSelect}
-                disabled={loading}
-                className="w-full py-3 text-xs tracking-widest uppercase disabled:opacity-40"
-                style={{ background: 'var(--gold)', color: '#080808' }}
-              >
-                {loading ? 'Adding...' : `Add "${query}"`}
-              </button>
-            </div>
+            <button
+              onClick={createAndSelect}
+              disabled={loading}
+              className="w-full mx-1 my-2 py-3 text-sm font-semibold rounded-xl disabled:opacity-50"
+              style={{ background: 'var(--accent)', color: 'white' }}
+            >
+              {loading ? 'Adding…' : `+ Add "${query}"`}
+            </button>
           )}
         </div>
+        <div className="h-4" />
       </div>
     </div>
   )
