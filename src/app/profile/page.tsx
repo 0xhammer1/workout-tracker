@@ -47,6 +47,7 @@ export default function ProfilePage() {
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null)
   const [avatarUrl, setAvatarUrl] = useState<string>('/avatar.png')
   const [uploadingAvatar, setUploadingAvatar] = useState(false)
+  const [avatarOpen, setAvatarOpen] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   async function loadProfile() {
@@ -142,11 +143,10 @@ export default function ProfilePage() {
       <header className="pt-8 pb-6 flex items-center gap-4">
         <button
           type="button"
-          onClick={() => fileInputRef.current?.click()}
-          disabled={uploadingAvatar}
-          className="relative w-24 h-24 rounded-2xl overflow-hidden shrink-0 transition-opacity active:opacity-80 disabled:opacity-60"
+          onClick={() => setAvatarOpen(true)}
+          className="w-24 h-24 rounded-2xl overflow-hidden shrink-0 transition-opacity active:opacity-80"
           style={{ border: '1px solid var(--border)' }}
-          aria-label="Change profile picture"
+          aria-label="View profile picture"
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
@@ -154,13 +154,6 @@ export default function ProfilePage() {
             alt="Profile"
             className="w-full h-full object-cover"
           />
-          {/* Edit affordance overlay */}
-          <span
-            className="absolute bottom-0 left-0 right-0 text-[10px] font-semibold tracking-wider uppercase py-1 text-center"
-            style={{ background: 'rgba(0,0,0,0.55)', color: '#f5f5f7' }}
-          >
-            {uploadingAvatar ? 'Saving…' : 'Edit'}
-          </span>
         </button>
         <input
           ref={fileInputRef}
@@ -176,6 +169,48 @@ export default function ProfilePage() {
           <h1 className="text-3xl font-bold tracking-tight mt-1">Mitchell</h1>
         </div>
       </header>
+
+      {avatarOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center px-6"
+          style={{ background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(8px)' }}
+          onClick={() => setAvatarOpen(false)}
+        >
+          <div
+            className="w-full max-w-sm flex flex-col items-center gap-5"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div
+              className="w-72 h-72 rounded-3xl overflow-hidden"
+              style={{ border: '1px solid var(--border)' }}
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={avatarUrl} alt="Profile" className="w-full h-full object-cover" />
+            </div>
+            <div className="flex gap-3 w-full">
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploadingAvatar}
+                className="flex-1 py-3 text-sm font-semibold rounded-xl transition-all active:scale-[0.98] disabled:opacity-60"
+                style={{ background: 'var(--accent)', color: 'white' }}
+              >
+                {uploadingAvatar ? 'Saving…' : 'Change Photo'}
+              </button>
+              <button
+                onClick={() => setAvatarOpen(false)}
+                className="flex-1 py-3 text-sm font-semibold rounded-xl transition-opacity active:opacity-60"
+                style={{
+                  background: 'var(--surface)',
+                  color: 'var(--text)',
+                  border: '1px solid var(--border)',
+                }}
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Current weight card */}
       <div
