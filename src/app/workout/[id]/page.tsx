@@ -10,7 +10,7 @@ import ExerciseSummary from '@/components/ExerciseSummary'
 import ExercisePicker from '@/components/ExercisePicker'
 
 function fireworks() {
-  const duration = 2500
+  const duration = 1500
   const end = Date.now() + duration
   const colors = ['#6366f1', '#a855f7', '#ec4899', '#f59e0b', '#10b981', '#06b6d4']
 
@@ -36,7 +36,7 @@ function fireworks() {
       colors,
       origin: { x: Math.random() * 0.4 + 0.5, y: Math.random() * 0.3 + 0.2 },
     })
-    setTimeout(burst, 300)
+    setTimeout(burst, 250)
   }
   burst()
 }
@@ -174,8 +174,14 @@ export default function WorkoutPage({ params }: { params: Promise<{ id: string }
   async function finishWorkout() {
     setSaving(true)
     await supabase.from('workouts').update({ notes: notes || null }).eq('id', id)
-    fireworks()
-    setTimeout(() => router.push('/'), 2200)
+    const today = new Date().toISOString().split('T')[0]
+    const isTodayWorkout = workout?.date === today
+    if (isTodayWorkout) {
+      fireworks()
+      setTimeout(() => router.push('/'), 1300)
+    } else {
+      router.push('/')
+    }
   }
 
   if (loading || !workout) {

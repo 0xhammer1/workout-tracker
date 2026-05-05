@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 import type { Workout } from '@/lib/types'
+import ConfirmDialog from '@/components/ConfirmDialog'
 
 interface WorkoutSummary extends Workout {
   exerciseCount: number
@@ -32,6 +33,7 @@ export default function HistoryPage() {
   const [allWorkouts, setAllWorkouts] = useState<WorkoutSummary[]>([])
   const [loading, setLoading] = useState(true)
   const [period, setPeriod] = useState<Period>('all')
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null)
 
   useEffect(() => {
     async function load() {
@@ -63,12 +65,17 @@ export default function HistoryPage() {
     load()
   }, [])
 
-  async function deleteWorkout(e: React.MouseEvent, workoutId: string) {
+  function requestDelete(e: React.MouseEvent, workoutId: string) {
     e.preventDefault()
     e.stopPropagation()
-    if (!confirm('Delete this workout?')) return
-    await supabase.from('workouts').delete().eq('id', workoutId)
-    setAllWorkouts((prev) => prev.filter((w) => w.id !== workoutId))
+    setPendingDeleteId(workoutId)
+  }
+
+  async function confirmDelete() {
+    if (!pendingDeleteId) return
+    await supabase.from('workouts').delete().eq('id', pendingDeleteId)
+    setAllWorkouts((prev) => prev.filter((w) => w.id !== pendingDeleteId))
+    setPendingDeleteId(null)
   }
 
   const cutoff = startDateFor(period)
@@ -142,7 +149,7 @@ export default function HistoryPage() {
               </div>
               <div className="flex items-center gap-3 ml-3 shrink-0">
                 <button
-                  onClick={(e) => deleteWorkout(e, w.id)}
+                  onClick={(e) => requestDelete(e, w.id)}
                   className="text-sm font-medium transition-opacity active:opacity-60"
                   style={{ color: 'var(--danger)' }}
                 >
@@ -154,6 +161,16 @@ export default function HistoryPage() {
           ))}
         </div>
       )}
+
+      <ConfirmDialog
+        open={pendingDeleteId !== null}
+        title="Delete this workout?"
+        message="This action cannot be undone."
+        confirmLabel="Delete"
+        destructive
+        onConfirm={confirmDelete}
+        onCancel={() => setPendingDeleteId(null)}
+      />
     </div>
   )
 }
