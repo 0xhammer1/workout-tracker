@@ -1,16 +1,7 @@
 import { supabase } from './supabase'
-import { CATEGORIES, type Category } from './categories'
-import { muscleForExercise, type MuscleGroup } from './muscleGroups'
+import { CATEGORIES, CATEGORY_MUSCLE_GROUPS, type Category } from './categories'
+import { muscleForExercise } from './muscleGroups'
 import type { Exercise } from './types'
-
-// Map workout categories → muscle groups they typically train
-const CATEGORY_MUSCLE_GROUPS: Record<Category, MuscleGroup[]> = {
-  push: ['chest', 'shoulders', 'triceps'],
-  pull: ['back', 'biceps'],
-  legs: ['legs', 'glutes'],
-  posterior: ['glutes', 'back'],
-  anterior: ['chest', 'shoulders', 'core', 'legs'],
-}
 
 export interface Suggestion {
   category: Category

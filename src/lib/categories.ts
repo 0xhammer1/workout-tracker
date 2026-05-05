@@ -1,3 +1,5 @@
+import type { MuscleGroup } from './muscleGroups'
+
 export const CATEGORIES = ['push', 'pull', 'legs', 'posterior', 'anterior'] as const
 export type Category = typeof CATEGORIES[number]
 
@@ -7,6 +9,14 @@ export const CATEGORY_LABELS: Record<Category, string> = {
   legs: 'Legs',
   posterior: 'Posterior',
   anterior: 'Anterior',
+}
+
+export const CATEGORY_MUSCLE_GROUPS: Record<Category, MuscleGroup[]> = {
+  push: ['chest', 'shoulders', 'triceps'],
+  pull: ['back', 'biceps'],
+  legs: ['legs', 'glutes'],
+  posterior: ['glutes', 'back', 'legs'],
+  anterior: ['chest', 'shoulders', 'core', 'legs'],
 }
 
 export const CATEGORY_COLORS: Record<Category, { color: string; bg: string }> = {

@@ -366,7 +366,13 @@ export default function WorkoutPage({ params }: { params: Promise<{ id: string }
         style={{ background: 'var(--surface)', color: 'var(--text)', border: '1px solid var(--border)' }}
       />
 
-      {showPicker && <ExercisePicker onSelect={addExercise} onClose={() => setShowPicker(false)} />}
+      {showPicker && (
+        <ExercisePicker
+          onSelect={addExercise}
+          onClose={() => setShowPicker(false)}
+          filterCategory={category || null}
+        />
+      )}
 
       <ConfirmDialog
         open={confirmDelete}

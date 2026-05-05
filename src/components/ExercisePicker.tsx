@@ -4,16 +4,20 @@ import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
 import type { Exercise } from '@/lib/types'
 import MuscleBadge from './MuscleBadge'
+import { muscleForExercise } from '@/lib/muscleGroups'
+import { CATEGORY_MUSCLE_GROUPS, CATEGORY_LABELS, type Category } from '@/lib/categories'
 
 interface Props {
   onSelect: (exercise: Exercise) => void
   onClose: () => void
+  filterCategory?: Category | null
 }
 
-export default function ExercisePicker({ onSelect, onClose }: Props) {
+export default function ExercisePicker({ onSelect, onClose, filterCategory }: Props) {
   const [exercises, setExercises] = useState<Exercise[]>([])
   const [query, setQuery] = useState('')
   const [loading, setLoading] = useState(false)
+  const [showAll, setShowAll] = useState(false)
 
   useEffect(() => {
     supabase
@@ -23,7 +27,16 @@ export default function ExercisePicker({ onSelect, onClose }: Props) {
       .then(({ data }) => setExercises(data ?? []))
   }, [])
 
-  const filtered = exercises.filter((e) =>
+  // Apply category filter (unless user toggled "Show all")
+  const categoryFiltered =
+    filterCategory && !showAll
+      ? exercises.filter((ex) => {
+          const m = muscleForExercise(ex)
+          return CATEGORY_MUSCLE_GROUPS[filterCategory].includes(m.group)
+        })
+      : exercises
+
+  const filtered = categoryFiltered.filter((e) =>
     e.name.toLowerCase().includes(query.toLowerCase())
   )
 
@@ -42,10 +55,19 @@ export default function ExercisePicker({ onSelect, onClose }: Props) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end" style={{ background: 'rgba(0,0,0,0.6)' }} onClick={onClose}>
+    <div
+      className="fixed inset-0 z-50 flex items-end"
+      style={{ background: 'rgba(0,0,0,0.6)' }}
+      onClick={onClose}
+    >
       <div
         className="w-full max-w-lg mx-auto flex flex-col rounded-t-3xl"
-        style={{ background: 'var(--surface)', borderTop: '1px solid var(--border)', maxHeight: '80vh' }}
+        style={{
+          background: 'var(--surface)',
+          borderTop: '1px solid var(--border)',
+          maxHeight: '80vh',
+          paddingBottom: 'env(safe-area-inset-bottom, 0px)',
+        }}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex justify-center pt-3 pb-1">
@@ -62,7 +84,43 @@ export default function ExercisePicker({ onSelect, onClose }: Props) {
             style={{ background: 'var(--surface-elevated)', color: 'var(--text)', border: '1px solid var(--border)' }}
           />
         </div>
+
+        {filterCategory && (
+          <div className="flex items-center justify-between px-5 pb-3 gap-2">
+            <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>
+              {showAll
+                ? 'Showing all exercises'
+                : `Filtered to ${CATEGORY_LABELS[filterCategory]} day`}
+            </span>
+            <button
+              onClick={() => setShowAll((v) => !v)}
+              className="text-xs font-semibold px-3 py-1 rounded-full transition-opacity active:opacity-60"
+              style={{
+                background: 'var(--surface-elevated)',
+                color: 'var(--accent)',
+                border: '1px solid var(--border)',
+              }}
+            >
+              {showAll ? `Filter to ${CATEGORY_LABELS[filterCategory]}` : 'Show all'}
+            </button>
+          </div>
+        )}
+
         <div className="overflow-y-auto flex-1 px-2">
+          {filtered.length === 0 && !query && filterCategory && !showAll && (
+            <div className="px-3 py-8 text-center">
+              <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
+                No exercises matching {CATEGORY_LABELS[filterCategory]}.
+              </p>
+              <button
+                onClick={() => setShowAll(true)}
+                className="mt-2 text-sm font-semibold"
+                style={{ color: 'var(--accent)' }}
+              >
+                Show all exercises
+              </button>
+            </div>
+          )}
           {filtered.map((ex) => (
             <button
               key={ex.id}
@@ -85,7 +143,7 @@ export default function ExercisePicker({ onSelect, onClose }: Props) {
             </button>
           )}
         </div>
-        <div className="h-4" />
+        <div className="h-2" />
       </div>
     </div>
   )
