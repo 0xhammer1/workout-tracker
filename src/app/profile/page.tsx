@@ -35,21 +35,19 @@ interface WeightLog {
   weight: number
 }
 
-type Period = 'week' | 'month' | 'year' | 'all'
+type Period = 'week' | 'month' | 'year'
 
 const PERIODS: { label: string; value: Period }[] = [
   { label: 'Week', value: 'week' },
   { label: 'Month', value: 'month' },
   { label: 'Year', value: 'year' },
-  { label: 'All', value: 'all' },
 ]
 
-function startDateFor(period: Period): string | null {
+function startDateFor(period: Period): string {
   const now = new Date()
   if (period === 'week') now.setDate(now.getDate() - 7)
   else if (period === 'month') now.setMonth(now.getMonth() - 1)
-  else if (period === 'year') now.setFullYear(now.getFullYear() - 1)
-  else return null
+  else now.setFullYear(now.getFullYear() - 1)
   return localDateStr(now)
 }
 
@@ -260,7 +258,7 @@ export default function ProfilePage() {
   }
 
   const cutoff = startDateFor(period)
-  const filtered = cutoff ? logs.filter((l) => l.date >= cutoff) : logs
+  const filtered = logs.filter((l) => l.date >= cutoff)
 
   const current = logs.length > 0 ? logs[logs.length - 1].weight : null
   const previous = logs.length > 1 ? logs[logs.length - 2].weight : null
@@ -269,6 +267,9 @@ export default function ProfilePage() {
   const periodStart = filtered.length > 0 ? filtered[0].weight : null
   const periodEnd = filtered.length > 0 ? filtered[filtered.length - 1].weight : null
   const periodChange = periodStart !== null && periodEnd !== null ? periodEnd - periodStart : null
+  const avgWeight = filtered.length > 0
+    ? filtered.reduce((s, l) => s + l.weight, 0) / filtered.length
+    : null
 
   return (
     <div>
@@ -613,11 +614,13 @@ export default function ProfilePage() {
                     labelFormatter={(v) => new Date(v).toLocaleDateString()}
                     formatter={(v) => [`${v} lbs`, 'Weight']}
                   />
-                  {periodStart !== null && (
+                  {avgWeight !== null && (
                     <ReferenceLine
-                      y={periodStart}
-                      stroke="#3a3b42"
-                      strokeDasharray="2 4"
+                      y={avgWeight}
+                      stroke="#6366f1"
+                      strokeOpacity={0.45}
+                      strokeDasharray="4 4"
+                      label={{ value: `avg ${avgWeight.toFixed(1)}`, position: 'insideTopRight', fontSize: 11, fill: '#6366f1', fillOpacity: 0.7 }}
                     />
                   )}
                   <Line

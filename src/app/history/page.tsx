@@ -133,8 +133,7 @@ export default function HistoryPage() {
   const cutoff = startDateFor(period)
   const workouts = cutoff ? allWorkouts.filter((w) => w.date >= cutoff) : allWorkouts
 
-  const weeklySummary = (() => {
-    if (period !== 'week') return null
+  const periodSummary = (() => {
     const days = new Set(workouts.map((w) => w.date))
     const totals: Partial<Record<MajorGroup, number>> = {}
     for (const w of workouts) {
@@ -144,6 +143,12 @@ export default function HistoryPage() {
     }
     return { dayCount: days.size, totals }
   })()
+
+  const periodLabel =
+    period === 'week' ? 'This Week'
+    : period === 'month' ? 'This Month'
+    : period === 'year' ? 'This Year'
+    : 'All Time'
 
   return (
     <div>
@@ -184,25 +189,25 @@ export default function HistoryPage() {
         ))}
       </div>
 
-      {weeklySummary && !loading && workouts.length > 0 && (
+      {!loading && workouts.length > 0 && (
         <div
           className="rounded-2xl p-5 mb-4"
           style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}
         >
           <div className="flex items-baseline justify-between mb-4">
             <p className="text-xs font-semibold tracking-wider uppercase" style={{ color: 'var(--text-secondary)' }}>
-              Sets This Week
+              Sets {periodLabel}
             </p>
             <p className="text-sm font-medium">
-              <span className="text-lg font-bold">{weeklySummary.dayCount}</span>
+              <span className="text-lg font-bold">{periodSummary.dayCount}</span>
               <span style={{ color: 'var(--text-secondary)' }}>
-                {' '}day{weeklySummary.dayCount === 1 ? '' : 's'}
+                {' '}day{periodSummary.dayCount === 1 ? '' : 's'}
               </span>
             </p>
           </div>
           <div className="grid grid-cols-2 gap-2">
             {MAJOR_GROUPS.map((g) => {
-              const n = weeklySummary.totals[g] ?? 0
+              const n = periodSummary.totals[g] ?? 0
               const c = MAJOR_COLOR[g]
               return (
                 <div
