@@ -514,7 +514,7 @@ export default function WorkoutPage({ params }: { params: Promise<{ id: string }
             />
           ) : (
             <div className="flex items-center gap-2">
-              <h1 className="text-2xl font-bold tracking-tight truncate">{dateLabel}</h1>
+              <h1 className="text-2xl font-bold tracking-tight">{dateLabel}</h1>
               {isOwner && (
                 <button
                   onClick={() => setEditingDate(true)}
