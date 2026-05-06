@@ -3,7 +3,7 @@
 // moment-in-time thing, fired from the spot that just crossed a
 // milestone (workout Done, photo upload).
 
-export type BadgeCategory = 'count' | 'type' | 'photo'
+export type BadgeCategory = 'count' | 'type' | 'photo' | 'reactions'
 
 export interface Badge {
   id: string
@@ -78,7 +78,35 @@ export const BADGES: Badge[] = [
     description: 'Share your first workout photo',
     emoji: '🥵',
     congratsTitle: 'First thirst trap!',
-    congratsBody: 'We’re thirsty. Keep showing off that progress.',
+    congratsBody: 'We’re parched. Keep showing off that progress.',
+  },
+
+  {
+    id: 'reactions_10',
+    category: 'reactions',
+    label: '10 Likes',
+    description: 'Get 10 likes on a single thirst trap',
+    emoji: '🔥',
+    congratsTitle: 'You’re on fire! 🔥',
+    congratsBody: '10 likes on your thirst trap. The people demand more.',
+  },
+  {
+    id: 'reactions_25',
+    category: 'reactions',
+    label: '25 Likes',
+    description: 'Get 25 likes on a single thirst trap',
+    emoji: '⚡️',
+    congratsTitle: 'Certified hottie ⚡️',
+    congratsBody: '25 likes on a single thirst trap. Beast.',
+  },
+  {
+    id: 'reactions_50',
+    category: 'reactions',
+    label: '50 Likes',
+    description: 'Get 50 likes on a single thirst trap',
+    emoji: '🌟',
+    congratsTitle: 'Main character energy 🌟',
+    congratsBody: '50 likes on a thirst trap. The gym is a stage.',
   },
 ]
 
@@ -90,7 +118,11 @@ export interface UserBadgeStats {
   workoutCount: number
   categoriesEverDone: Set<string>
   photoCount: number
+  // Highest reaction count on any single photo the user owns
+  maxPhotoReactions: number
 }
+
+export const REACTION_MILESTONES = [10, 25, 50] as const
 
 export function earnedBadgeIds(stats: UserBadgeStats): Set<string> {
   const out = new Set<string>()
@@ -101,6 +133,9 @@ export function earnedBadgeIds(stats: UserBadgeStats): Set<string> {
     if (stats.categoriesEverDone.has(cat)) out.add(`type_${cat}`)
   }
   if (stats.photoCount >= 1) out.add('photo_first')
+  for (const n of REACTION_MILESTONES) {
+    if (stats.maxPhotoReactions >= n) out.add(`reactions_${n}`)
+  }
   return out
 }
 
@@ -133,6 +168,16 @@ export function previewBadges(earned: Set<string>): Badge[] {
     const b = badgeById('photo_first')
     if (b) out.push(b)
   }
+
+  // Reactions: highest milestone earned
+  let highestReactions: Badge | null = null
+  for (const n of REACTION_MILESTONES) {
+    if (earned.has(`reactions_${n}`)) {
+      const b = badgeById(`reactions_${n}`)
+      if (b) highestReactions = b
+    }
+  }
+  if (highestReactions) out.push(highestReactions)
 
   return out
 }

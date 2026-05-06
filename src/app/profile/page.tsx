@@ -20,11 +20,14 @@ import { useAuth, signOut } from '@/lib/auth'
 import { localDateStr } from '@/lib/dates'
 import {
   BADGES,
+  badgeById,
   earnedBadgeIds,
   previewBadges,
+  type Badge,
   type BadgeCategory,
 } from '@/lib/badges'
 import { BadgeChip, BadgeRow } from '@/components/BadgeChip'
+import BadgeCelebration from '@/components/BadgeCelebration'
 
 interface WeightLog {
   id: string
@@ -69,6 +72,7 @@ export default function ProfilePage() {
   const [workoutCount, setWorkoutCount] = useState(0)
   const [earnedIds, setEarnedIds] = useState<Set<string>>(new Set())
   const [showAllBadges, setShowAllBadges] = useState(false)
+  const [pendingBadges, setPendingBadges] = useState<Badge[]>([])
 
   async function loadProfile() {
     if (!user) return
@@ -168,29 +172,68 @@ export default function ProfilePage() {
   useEffect(() => {
     if (!user) return
     async function loadStats() {
-      const [{ data: workouts }, { count: photoCount }] = await Promise.all([
+      const [{ data: workouts }, { data: photos }] = await Promise.all([
         supabase.from('workouts').select('category').eq('user_id', user!.id),
-        supabase
-          .from('workout_photos')
-          .select('id', { count: 'exact', head: true })
-          .eq('user_id', user!.id),
+        supabase.from('workout_photos').select('id').eq('user_id', user!.id),
       ])
       const ws = (workouts ?? []) as { category: string | null }[]
+      const ps = (photos ?? []) as { id: string }[]
       const cats = new Set<string>()
       for (const w of ws) if (w.category) cats.add(w.category)
+
+      let maxReactions = 0
+      if (ps.length > 0) {
+        const { data: reactions } = await supabase
+          .from('photo_reactions')
+          .select('photo_id')
+          .in('photo_id', ps.map((p) => p.id))
+        const counts = new Map<string, number>()
+        for (const r of (reactions ?? []) as { photo_id: string }[]) {
+          counts.set(r.photo_id, (counts.get(r.photo_id) ?? 0) + 1)
+        }
+        for (const c of counts.values()) if (c > maxReactions) maxReactions = c
+      }
+
       setWorkoutCount(ws.length)
-      setEarnedIds(
-        earnedBadgeIds({
-          workoutCount: ws.length,
-          categoriesEverDone: cats,
-          photoCount: photoCount ?? 0,
-        })
-      )
+      const earned = earnedBadgeIds({
+        workoutCount: ws.length,
+        categoriesEverDone: cats,
+        photoCount: ps.length,
+        maxPhotoReactions: maxReactions,
+      })
+      setEarnedIds(earned)
+
+      // Fire celebrations for any earned badges the user hasn't seen yet.
+      // Tracked in localStorage so we don't replay the same one each visit.
+      const seenKey = `seenBadges:${user!.id}`
+      const seenRaw = typeof window !== 'undefined' ? localStorage.getItem(seenKey) : null
+      const seen = new Set<string>(seenRaw ? (JSON.parse(seenRaw) as string[]) : [])
+      const newlyEarned: Badge[] = []
+      for (const id of earned) {
+        if (!seen.has(id)) {
+          const b = badgeById(id)
+          if (b) newlyEarned.push(b)
+          seen.add(id)
+        }
+      }
+      if (typeof window !== 'undefined') {
+        localStorage.setItem(seenKey, JSON.stringify([...seen]))
+      }
+      // Only fire celebrations if the user has seen at least one badge before —
+      // first-time visitors shouldn't get a flood of "1 workout!" / "First push!"
+      // popups for badges earned long before this feature shipped.
+      if (seenRaw !== null && newlyEarned.length > 0) {
+        setPendingBadges((prev) => [...prev, ...newlyEarned])
+      }
     }
     loadStats()
   }, [user?.id])
 
   const previewBadgeList = previewBadges(earnedIds)
+
+  function dismissBadge() {
+    setPendingBadges((prev) => prev.slice(1))
+  }
 
   async function logWeight() {
     const w = parseFloat(weightInput)
@@ -368,6 +411,8 @@ export default function ProfilePage() {
         )}
       </div>
 
+      <BadgeCelebration badge={pendingBadges[0] ?? null} onClose={dismissBadge} />
+
       {showAllBadges && (
         <div
           className="fixed inset-0 z-50 flex items-end sm:items-center justify-center px-4 pb-6 sm:pb-0"
@@ -393,12 +438,13 @@ export default function ProfilePage() {
                 </svg>
               </button>
             </div>
-            {(['count', 'type', 'photo'] as BadgeCategory[]).map((cat) => {
+            {(['count', 'type', 'photo', 'reactions'] as BadgeCategory[]).map((cat) => {
               const items = BADGES.filter((b) => b.category === cat)
               const labels: Record<BadgeCategory, string> = {
                 count: 'Workout Milestones',
                 type: 'Workout Types',
                 photo: 'Photos',
+                reactions: 'Likes',
               }
               return (
                 <div key={cat} className="mb-5 last:mb-0">
