@@ -113,7 +113,7 @@ export type RecoveryState = 'fresh' | 'worked' | 'fatigued'
 export interface MuscleRecovery {
   group: MuscleGroup
   state: RecoveryState
-  volumeLast3d: number
+  setsLast3d: number
   daysAgo: number | null
 }
 
@@ -128,38 +128,35 @@ export async function getMuscleRecovery(userId: string): Promise<MuscleRecovery[
 
   const { data } = await supabase
     .from('sets')
-    .select('weight, reps, exercises!inner(id, name, muscle_group, created_at), workouts!inner(date, user_id)')
+    .select('exercises!inner(id, name, muscle_group, created_at), workouts!inner(date, user_id)')
     .eq('workouts.user_id', userId)
     .gte('workouts.date', sinceStr)
-    .not('weight', 'is', null)
 
   type Row = {
-    weight: number | string
-    reps: number | string | null
     exercises: Exercise
     workouts: { date: string }
   }
   const rows = (data ?? []) as unknown as Row[]
 
   const today = localDateStr()
-  const volumeByGroup = new Map<MuscleGroup, number>()
+  const setsByGroup = new Map<MuscleGroup, number>()
   const lastDateByGroup = new Map<MuscleGroup, string>()
 
   for (const r of rows) {
     const m = muscleForExercise(r.exercises)
-    const vol = Number(r.weight) * Number(r.reps ?? 0)
-    volumeByGroup.set(m.group, (volumeByGroup.get(m.group) ?? 0) + vol)
+    setsByGroup.set(m.group, (setsByGroup.get(m.group) ?? 0) + 1)
     const prev = lastDateByGroup.get(m.group)
     if (!prev || r.workouts.date > prev) lastDateByGroup.set(m.group, r.workouts.date)
   }
 
-  // Threshold tuning: rough but better than nothing.
-  // Below 2000 lbs total volume in last 3 days = fresh
-  // 2000–6000 = worked
-  // > 6000 = fatigued
+  // Classify by set count over the last 3 days.
+  //   0 sets        → fresh
+  //   1–5 sets      → worked
+  //   6+ sets       → fatigued
+  // Set counts are muscle-agnostic — a set is a set whether it's a curl or a squat.
   const groups: MuscleGroup[] = ['chest', 'back', 'shoulders', 'biceps', 'triceps', 'legs', 'glutes', 'core']
   return groups.map((g) => {
-    const vol = volumeByGroup.get(g) ?? 0
+    const sets = setsByGroup.get(g) ?? 0
     const lastDate = lastDateByGroup.get(g) ?? null
     const daysAgo = lastDate
       ? Math.floor(
@@ -167,9 +164,22 @@ export async function getMuscleRecovery(userId: string): Promise<MuscleRecovery[
             (1000 * 60 * 60 * 24)
         )
       : null
-    let state: RecoveryState = 'fresh'
-    if (vol > 6000) state = 'fatigued'
-    else if (vol > 2000) state = 'worked'
-    return { group: g, state, volumeLast3d: Math.round(vol), daysAgo }
+    // Determine peak state from set count, then decay by time.
+    // Fatigued → Worked after 24 h (daysAgo = 1), anything ≥ 48 h → Fresh.
+    let peakState: RecoveryState = 'fresh'
+    if (sets > 6) peakState = 'fatigued'
+    else if (sets > 0) peakState = 'worked'
+
+    let state: RecoveryState
+    if (daysAgo === null || daysAgo >= 2) {
+      state = 'fresh'
+    } else if (daysAgo === 1) {
+      // Decay one level
+      state = peakState === 'fatigued' ? 'worked' : 'fresh'
+    } else {
+      // daysAgo === 0: trained today, no decay
+      state = peakState
+    }
+    return { group: g, state, setsLast3d: sets, daysAgo }
   })
 }
