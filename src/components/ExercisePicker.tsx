@@ -6,6 +6,7 @@ import type { Exercise } from '@/lib/types'
 import MuscleBadge from './MuscleBadge'
 import { muscleForExercise } from '@/lib/muscleGroups'
 import { CATEGORY_MUSCLE_GROUPS, CATEGORY_LABELS, type Category } from '@/lib/categories'
+import { useAuth } from '@/lib/auth'
 
 interface Props {
   onSelect: (exercise: Exercise) => void
@@ -14,6 +15,7 @@ interface Props {
 }
 
 export default function ExercisePicker({ onSelect, onClose, filterCategory }: Props) {
+  const { user } = useAuth()
   const [exercises, setExercises] = useState<Exercise[]>([])
   const [usageCount, setUsageCount] = useState<Map<string, number>>(new Map())
   const [lastUsed, setLastUsed] = useState<Map<string, string>>(new Map())
@@ -22,6 +24,7 @@ export default function ExercisePicker({ onSelect, onClose, filterCategory }: Pr
   const [showAll, setShowAll] = useState(false)
 
   useEffect(() => {
+    if (!user) return
     let cancelled = false
 
     async function load() {
@@ -29,7 +32,8 @@ export default function ExercisePicker({ onSelect, onClose, filterCategory }: Pr
         supabase.from('exercises').select('*').order('name'),
         supabase
           .from('sets')
-          .select('exercise_id, workouts!inner(date)')
+          .select('exercise_id, workouts!inner(date, user_id)')
+          .eq('workouts.user_id', user!.id)
           .order('created_at', { ascending: false }),
       ])
       if (cancelled) return
@@ -52,7 +56,7 @@ export default function ExercisePicker({ onSelect, onClose, filterCategory }: Pr
     return () => {
       cancelled = true
     }
-  }, [])
+  }, [user?.id])
 
   // Apply category filter (unless user toggled "Show all")
   const categoryFiltered =

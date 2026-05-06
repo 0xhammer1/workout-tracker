@@ -84,6 +84,7 @@ export default function WorkoutPage({ params }: { params: Promise<{ id: string }
   const [photos, setPhotos] = useState<WorkoutPhoto[]>([])
   const [uploadingPhoto, setUploadingPhoto] = useState(false)
   const [photoToDelete, setPhotoToDelete] = useState<WorkoutPhoto | null>(null)
+  const [showPhotoPrompt, setShowPhotoPrompt] = useState(false)
   const [reactionsByPhoto, setReactionsByPhoto] = useState<Record<string, PhotoReaction[]>>({})
   const [commentsByPhoto, setCommentsByPhoto] = useState<Record<string, PhotoComment[]>>({})
   const [commenters, setCommenters] = useState<Record<string, CommenterInfo>>({})
@@ -222,10 +223,16 @@ export default function WorkoutPage({ params }: { params: Promise<{ id: string }
   async function onPhotoPicked(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (!file || !user) return
+    const wasPromptOpen = showPhotoPrompt
     setUploadingPhoto(true)
     try {
       const photo = await uploadWorkoutPhoto(file, user.id, id)
       setPhotos((prev) => [...prev, photo])
+      // If the prompt was open (post-Done), upload's done — exit to home
+      if (wasPromptOpen) {
+        setShowPhotoPrompt(false)
+        finishAndExit()
+      }
     } catch (err) {
       alert(`Upload failed: ${(err as Error).message}`)
     } finally {
@@ -323,6 +330,17 @@ export default function WorkoutPage({ params }: { params: Promise<{ id: string }
   async function finishWorkout() {
     setSaving(true)
     await supabase.from('workouts').update({ notes: notes || null, category: category || null }).eq('id', id)
+    setSaving(false)
+
+    // Prompt to add a photo if there isn't one yet — encourages sharing
+    if (isOwner && photos.length === 0) {
+      setShowPhotoPrompt(true)
+      return
+    }
+    finishAndExit()
+  }
+
+  function finishAndExit() {
     const isFresh = sessionStorage.getItem('freshWorkoutId') === id
     if (isFresh) {
       sessionStorage.removeItem('freshWorkoutId')
@@ -629,6 +647,56 @@ export default function WorkoutPage({ params }: { params: Promise<{ id: string }
         onConfirm={confirmDeletePhoto}
         onCancel={() => setPhotoToDelete(null)}
       />
+
+      {showPhotoPrompt && (
+        <div
+          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center px-4 pb-6 sm:pb-0"
+          style={{ background: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(8px)' }}
+          onClick={() => {
+            setShowPhotoPrompt(false)
+            finishAndExit()
+          }}
+        >
+          <div
+            className="w-full max-w-sm rounded-3xl p-6 text-center"
+            style={{ background: 'var(--surface-elevated)', border: '1px solid var(--border)' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div
+              className="w-14 h-14 rounded-2xl mx-auto mb-4 flex items-center justify-center"
+              style={{ background: 'var(--accent)', color: 'white' }}
+            >
+              <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                <circle cx="8.5" cy="8.5" r="1.5" />
+                <polyline points="21 15 16 10 5 21" />
+              </svg>
+            </div>
+            <h2 className="text-xl font-bold tracking-tight mb-1">Share your progress!</h2>
+            <p className="text-sm mb-6" style={{ color: 'var(--text-secondary)' }}>
+              Add a photo so your friends can see your gains.
+            </p>
+            <button
+              onClick={() => photoInputRef.current?.click()}
+              disabled={uploadingPhoto}
+              className="w-full py-3 text-sm font-semibold rounded-xl mb-2 transition-all active:scale-[0.98] disabled:opacity-60"
+              style={{ background: 'var(--accent)', color: 'white' }}
+            >
+              {uploadingPhoto ? 'Uploading…' : 'Add a Photo'}
+            </button>
+            <button
+              onClick={() => {
+                setShowPhotoPrompt(false)
+                finishAndExit()
+              }}
+              className="w-full py-3 text-sm font-medium transition-opacity active:opacity-60"
+              style={{ color: 'var(--text-secondary)' }}
+            >
+              Skip for now
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

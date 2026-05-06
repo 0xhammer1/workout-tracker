@@ -33,9 +33,11 @@ export default function Home() {
   const [queuedExerciseNames, setQueuedExerciseNames] = useState<Exercise[]>([])
 
   useEffect(() => {
+    if (!user) return
     supabase
       .from('workouts')
       .select('*')
+      .eq('user_id', user.id)
       .order('date', { ascending: false })
       .limit(5)
       .then(({ data }) => {
@@ -43,8 +45,8 @@ export default function Home() {
         setLoading(false)
       })
 
-    suggestWorkout().then(setSuggestion)
-  }, [])
+    suggestWorkout(user.id).then(setSuggestion)
+  }, [user?.id])
 
   useEffect(() => {
     if (!user) return

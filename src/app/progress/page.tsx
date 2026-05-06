@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 import type { Exercise } from '@/lib/types'
 import ProgressChart from '@/components/ProgressChart'
+import { useAuth } from '@/lib/auth'
 
 interface ChartPoint {
   date: string
@@ -31,6 +32,7 @@ function startDateFor(period: Period): string | null {
 }
 
 export default function PersonalRecordsPage() {
+  const { user } = useAuth()
   const [period, setPeriod] = useState<Period>('month')
   const [exercises, setExercises] = useState<Exercise[]>([])
   const [selectedId, setSelectedId] = useState<string>('')
@@ -39,9 +41,11 @@ export default function PersonalRecordsPage() {
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
+    if (!user) return
     supabase
       .from('sets')
-      .select('exercise_id, exercises!inner(id, name, created_at)')
+      .select('exercise_id, exercises!inner(id, name, created_at), workouts!inner(user_id)')
+      .eq('workouts.user_id', user.id)
       .then(({ data }) => {
         if (!data) return
         const seen = new Set<string>()
@@ -57,10 +61,10 @@ export default function PersonalRecordsPage() {
         setExercises(unique)
         if (unique.length > 0 && !selectedId) setSelectedId(unique[0].id)
       })
-  }, [selectedId])
+  }, [selectedId, user?.id])
 
   useEffect(() => {
-    if (!selectedId) {
+    if (!selectedId || !user) {
       setChartData([])
       return
     }
@@ -69,8 +73,9 @@ export default function PersonalRecordsPage() {
 
     supabase
       .from('sets')
-      .select('weight, reps, workouts!inner(date)')
+      .select('weight, reps, workouts!inner(date, user_id)')
       .eq('exercise_id', selectedId)
+      .eq('workouts.user_id', user.id)
       .not('weight', 'is', null)
       .order('created_at', { ascending: true })
       .then(({ data }) => {
@@ -100,7 +105,7 @@ export default function PersonalRecordsPage() {
         setChartData(points)
         setLoading(false)
       })
-  }, [period, selectedId])
+  }, [period, selectedId, user?.id])
 
   return (
     <div>

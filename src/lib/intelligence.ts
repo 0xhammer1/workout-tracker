@@ -120,14 +120,15 @@ export interface MuscleRecovery {
  * Sum volume (weight × reps) per muscle group over the last 3 days.
  * Classify into fresh / worked / fatigued bands.
  */
-export async function getMuscleRecovery(): Promise<MuscleRecovery[]> {
+export async function getMuscleRecovery(userId: string): Promise<MuscleRecovery[]> {
   const since = new Date()
   since.setDate(since.getDate() - 3)
   const sinceStr = since.toISOString().split('T')[0]
 
   const { data } = await supabase
     .from('sets')
-    .select('weight, reps, exercises!inner(id, name, muscle_group, created_at), workouts!inner(date)')
+    .select('weight, reps, exercises!inner(id, name, muscle_group, created_at), workouts!inner(date, user_id)')
+    .eq('workouts.user_id', userId)
     .gte('workouts.date', sinceStr)
     .not('weight', 'is', null)
 

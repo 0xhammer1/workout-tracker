@@ -22,7 +22,7 @@ interface SetRowWithExercise {
   workouts?: { date: string }
 }
 
-export async function suggestWorkout(): Promise<Suggestion> {
+export async function suggestWorkout(userId: string): Promise<Suggestion> {
   // Pull recent workouts (last 30 days is enough to know what's been done)
   const since = new Date()
   since.setDate(since.getDate() - 30)
@@ -31,6 +31,7 @@ export async function suggestWorkout(): Promise<Suggestion> {
   const { data: workoutsData } = await supabase
     .from('workouts')
     .select('id, date, category')
+    .eq('user_id', userId)
     .gte('date', sinceStr)
     .order('date', { ascending: false })
 
@@ -102,7 +103,8 @@ export async function suggestWorkout(): Promise<Suggestion> {
     const targetGroups = new Set<string>(CATEGORY_MUSCLE_GROUPS[suggested])
     const { data: allSets } = await supabase
       .from('sets')
-      .select('exercise_id, exercises!inner(id, name, muscle_group, created_at), workouts!inner(date)')
+      .select('exercise_id, exercises!inner(id, name, muscle_group, created_at), workouts!inner(date, user_id)')
+      .eq('workouts.user_id', userId)
 
     const today = new Date().toISOString().split('T')[0]
     const stats = new Map<string, { ex: Exercise; count: number; lastDate: string }>()

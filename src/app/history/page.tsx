@@ -6,6 +6,7 @@ import { supabase } from '@/lib/supabase'
 import type { Workout } from '@/lib/types'
 import ConfirmDialog from '@/components/ConfirmDialog'
 import CategoryBadge from '@/components/CategoryBadge'
+import { useAuth } from '@/lib/auth'
 import {
   muscleForExercise,
   type MuscleGroup,
@@ -49,16 +50,19 @@ interface SetRow {
 }
 
 export default function HistoryPage() {
+  const { user } = useAuth()
   const [allWorkouts, setAllWorkouts] = useState<WorkoutSummary[]>([])
   const [loading, setLoading] = useState(true)
   const [period, setPeriod] = useState<Period>('week')
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null)
 
   useEffect(() => {
+    if (!user) return
     async function load() {
       const { data: wsRaw } = await supabase
         .from('workouts')
         .select('*')
+        .eq('user_id', user!.id)
         .order('date', { ascending: false })
 
       const ws = wsRaw as Workout[] | null
@@ -110,7 +114,7 @@ export default function HistoryPage() {
       setLoading(false)
     }
     load()
-  }, [])
+  }, [user?.id])
 
   function requestDelete(e: React.MouseEvent, workoutId: string) {
     e.preventDefault()

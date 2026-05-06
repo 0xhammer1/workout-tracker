@@ -3,13 +3,16 @@
 import { useState, useEffect } from 'react'
 import { getMuscleRecovery, type MuscleRecovery } from '@/lib/intelligence'
 import { infoFor } from '@/lib/muscleGroups'
+import { useAuth } from '@/lib/auth'
 
 export default function RecoveryStrip() {
+  const { user } = useAuth()
   const [data, setData] = useState<MuscleRecovery[]>([])
 
   useEffect(() => {
-    getMuscleRecovery().then(setData)
-  }, [])
+    if (!user) return
+    getMuscleRecovery(user.id).then(setData)
+  }, [user?.id])
 
   if (data.length === 0) return null
 
