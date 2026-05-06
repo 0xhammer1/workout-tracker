@@ -23,6 +23,38 @@ export async function resizeImageToDataUrl(
   return canvas.toDataURL('image/jpeg', quality)
 }
 
+// Same idea as resizeImageToDataUrl but preserves aspect ratio
+// (no square crop) and returns a Blob instead of a data URL —
+// suitable for uploading to Supabase Storage.
+export async function resizeImageToBlob(
+  file: File,
+  maxDim = 1080,
+  quality = 0.85
+): Promise<Blob> {
+  const dataUrl = await readFileAsDataUrl(file)
+  const img = await loadImage(dataUrl)
+
+  const ratio = Math.min(1, maxDim / Math.max(img.width, img.height))
+  const w = Math.round(img.width * ratio)
+  const h = Math.round(img.height * ratio)
+
+  const canvas = document.createElement('canvas')
+  canvas.width = w
+  canvas.height = h
+  const ctx = canvas.getContext('2d')
+  if (!ctx) throw new Error('Could not get 2D context')
+
+  ctx.drawImage(img, 0, 0, w, h)
+
+  return new Promise((resolve, reject) => {
+    canvas.toBlob(
+      (blob) => (blob ? resolve(blob) : reject(new Error('Could not encode image'))),
+      'image/jpeg',
+      quality
+    )
+  })
+}
+
 function readFileAsDataUrl(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader()

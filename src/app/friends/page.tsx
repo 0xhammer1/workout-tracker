@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import { useAuth } from '@/lib/auth'
 import {
   searchUsers,
@@ -15,7 +15,16 @@ import {
 } from '@/lib/friends'
 import Avatar from '@/components/Avatar'
 import CategoryBadge from '@/components/CategoryBadge'
-import Link from 'next/link'
+import PhotoCard, { type CommenterInfo } from '@/components/PhotoCard'
+import {
+  loadPhotosForWorkouts,
+  loadReactionsForPhotos,
+  loadCommentsForPhotos,
+  type WorkoutPhoto,
+  type PhotoReaction,
+  type PhotoComment,
+} from '@/lib/photos'
+import { supabase } from '@/lib/supabase'
 
 interface FriendEntry {
   request: FriendRequestRow
@@ -29,12 +38,29 @@ export default function FriendsPage() {
   const [incoming, setIncoming] = useState<FriendEntry[]>([])
   const [outgoing, setOutgoing] = useState<FriendEntry[]>([])
   const [feed, setFeed] = useState<FeedWorkout[]>([])
+  const [photosByWorkout, setPhotosByWorkout] = useState<Record<string, WorkoutPhoto[]>>({})
+  const [reactionsByPhoto, setReactionsByPhoto] = useState<Record<string, PhotoReaction[]>>({})
+  const [commentsByPhoto, setCommentsByPhoto] = useState<Record<string, PhotoComment[]>>({})
+  const [commenters, setCommenters] = useState<Record<string, CommenterInfo>>({})
 
   const [searchQuery, setSearchQuery] = useState('')
   const [searching, setSearching] = useState(false)
   const [searchResults, setSearchResults] = useState<FriendUser[] | null>(null)
   const [searchError, setSearchError] = useState<string | null>(null)
   const [sending, setSending] = useState<string | null>(null)
+
+  // commenters seed map from friend profiles + current user — refreshSocial will
+  // fold in any stragglers (friends-of-friends commenting on shared photos).
+  const friendCommenterSeed = useMemo(() => {
+    const map: Record<string, CommenterInfo> = {}
+    for (const f of friends) {
+      map[f.other.id] = {
+        display_name: f.other.display_name,
+        avatar_url: f.other.avatar_url,
+      }
+    }
+    return map
+  }, [friends])
 
   async function refresh() {
     if (!user) return
@@ -45,7 +71,50 @@ export default function FriendsPage() {
     setOutgoing(data.outgoing)
     const feedRows = await loadFriendsFeed(data.friends.map((f) => f.other.id))
     setFeed(feedRows)
+    await refreshSocial(feedRows)
     setLoading(false)
+  }
+
+  async function refreshSocial(feedRows: FeedWorkout[]) {
+    if (!user) return
+    const photos = await loadPhotosForWorkouts(feedRows.map((w) => w.id))
+    setPhotosByWorkout(photos)
+
+    const photoIds = Object.values(photos).flat().map((p) => p.id)
+    const [reactions, comments] = await Promise.all([
+      loadReactionsForPhotos(photoIds),
+      loadCommentsForPhotos(photoIds),
+    ])
+    setReactionsByPhoto(reactions)
+    setCommentsByPhoto(comments)
+
+    // Build commenters map: friends + current user + anyone else whose profile
+    // we can read (RLS will silently drop the ones we can't).
+    const seenIds = new Set<string>()
+    for (const list of Object.values(comments)) {
+      for (const c of list) seenIds.add(c.user_id)
+    }
+    seenIds.add(user.id)
+
+    const map: Record<string, CommenterInfo> = { ...friendCommenterSeed }
+    const missing = [...seenIds].filter((id) => !(id in map))
+    if (missing.length > 0) {
+      const { data: rows } = await supabase
+        .from('user_profiles')
+        .select('user_id, display_name, avatar_url')
+        .in('user_id', missing)
+      for (const r of rows ?? []) {
+        map[r.user_id as string] = {
+          display_name: r.display_name as string | null,
+          avatar_url: r.avatar_url as string | null,
+        }
+      }
+    }
+    setCommenters(map)
+  }
+
+  async function refreshSocialOnly() {
+    await refreshSocial(feed)
   }
 
   useEffect(() => {
@@ -264,9 +333,18 @@ export default function FriendsPage() {
             No workouts from your friends yet.
           </p>
         ) : (
-          <div className="space-y-2">
+          <div className="space-y-3">
             {feed.map((w) => (
-              <FeedRow key={w.id} workout={w} />
+              <FeedRow
+                key={w.id}
+                workout={w}
+                photos={photosByWorkout[w.id] ?? []}
+                reactionsByPhoto={reactionsByPhoto}
+                commentsByPhoto={commentsByPhoto}
+                commenters={commenters}
+                currentUserId={user?.id ?? ''}
+                onSocialChange={refreshSocialOnly}
+              />
             ))}
           </div>
         )}
@@ -332,7 +410,25 @@ function Row({
   )
 }
 
-function FeedRow({ workout }: { workout: FeedWorkout }) {
+interface FeedRowProps {
+  workout: FeedWorkout
+  photos: WorkoutPhoto[]
+  reactionsByPhoto: Record<string, PhotoReaction[]>
+  commentsByPhoto: Record<string, PhotoComment[]>
+  commenters: Record<string, CommenterInfo>
+  currentUserId: string
+  onSocialChange: () => void
+}
+
+function FeedRow({
+  workout,
+  photos,
+  reactionsByPhoto,
+  commentsByPhoto,
+  commenters,
+  currentUserId,
+  onSocialChange,
+}: FeedRowProps) {
   const name = workout.display_name ?? '—'
   const dateLabel = new Date(workout.date + 'T12:00:00').toLocaleDateString('en-US', {
     weekday: 'short',
@@ -341,38 +437,47 @@ function FeedRow({ workout }: { workout: FeedWorkout }) {
   })
 
   const action =
-    workout.privacy === 'minimal'
-      ? 'worked out'
-      : 'completed a workout'
-
-  // Drill-in only for full-detail privacy; otherwise non-clickable card
-  const Wrapper = workout.privacy === 'full' ? Link : 'div'
-  const wrapperProps =
-    workout.privacy === 'full'
-      ? { href: `/workout/${workout.id}` }
-      : {}
+    workout.privacy === 'minimal' ? 'worked out' : 'completed a workout'
 
   return (
-    <Wrapper
-      {...(wrapperProps as { href: string })}
-      className="flex items-center gap-3 px-2 py-2 rounded-xl transition-colors active:bg-white/5"
+    <div
+      className="rounded-2xl p-3"
+      style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}
     >
-      <div
-        className="w-10 h-10 rounded-full overflow-hidden shrink-0"
-        style={{ border: '1px solid var(--border)' }}
-      >
-        <Avatar src={workout.avatar_url} name={name} size={40} />
+      <div className="flex items-center gap-3 mb-1">
+        <div
+          className="w-10 h-10 rounded-full overflow-hidden shrink-0"
+          style={{ border: '1px solid var(--border)' }}
+        >
+          <Avatar src={workout.avatar_url} name={name} size={40} />
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-sm">
+            <span className="font-semibold">{name}</span>
+            <span style={{ color: 'var(--text-secondary)' }}> {action}</span>
+          </p>
+          <p className="text-xs" style={{ color: 'var(--text-tertiary)' }}>
+            {dateLabel}
+          </p>
+        </div>
+        {workout.category && <CategoryBadge category={workout.category} />}
       </div>
-      <div className="flex-1 min-w-0">
-        <p className="text-sm">
-          <span className="font-semibold">{name}</span>
-          <span style={{ color: 'var(--text-secondary)' }}> {action}</span>
-        </p>
-        <p className="text-xs" style={{ color: 'var(--text-tertiary)' }}>
-          {dateLabel}
-        </p>
-      </div>
-      {workout.category && <CategoryBadge category={workout.category} />}
-    </Wrapper>
+
+      {photos.length > 0 && (
+        <div className="mt-2">
+          {photos.map((p) => (
+            <PhotoCard
+              key={p.id}
+              photo={p}
+              reactions={reactionsByPhoto[p.id] ?? []}
+              comments={commentsByPhoto[p.id] ?? []}
+              currentUserId={currentUserId}
+              commenters={commenters}
+              onChange={onSocialChange}
+            />
+          ))}
+        </div>
+      )}
+    </div>
   )
 }

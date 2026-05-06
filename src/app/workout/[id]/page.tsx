@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, use } from 'react'
+import { useState, useEffect, use, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import confetti from 'canvas-confetti'
 import { supabase } from '@/lib/supabase'
@@ -10,6 +10,13 @@ import ExerciseSummary from '@/components/ExerciseSummary'
 import ExercisePicker from '@/components/ExercisePicker'
 import ConfirmDialog from '@/components/ConfirmDialog'
 import { CATEGORIES, CATEGORY_LABELS, CATEGORY_COLORS, type Category } from '@/lib/categories'
+import { useAuth } from '@/lib/auth'
+import {
+  uploadWorkoutPhoto,
+  deleteWorkoutPhoto,
+  loadPhotosForWorkouts,
+  type WorkoutPhoto,
+} from '@/lib/photos'
 
 function fireworks() {
   const duration = 800
@@ -67,6 +74,12 @@ export default function WorkoutPage({ params }: { params: Promise<{ id: string }
   const [saving, setSaving] = useState(false)
   const [loading, setLoading] = useState(true)
   const [confirmDelete, setConfirmDelete] = useState(false)
+  const [photos, setPhotos] = useState<WorkoutPhoto[]>([])
+  const [uploadingPhoto, setUploadingPhoto] = useState(false)
+  const [photoToDelete, setPhotoToDelete] = useState<WorkoutPhoto | null>(null)
+  const photoInputRef = useRef<HTMLInputElement>(null)
+  const { user } = useAuth()
+  const isOwner = !!user && !!workout && workout.user_id === user.id
 
   useEffect(() => {
     async function load() {
@@ -125,6 +138,9 @@ export default function WorkoutPage({ params }: { params: Promise<{ id: string }
 
       setEntries(Array.from(map.values()))
 
+      const photosMap = await loadPhotosForWorkouts([id])
+      setPhotos(photosMap[id] ?? [])
+
       // If workout is from today and empty, default to edit mode
       const today = new Date().toISOString().split('T')[0]
       if (w?.date === today && (!setsRaw || setsRaw.length === 0)) {
@@ -135,6 +151,29 @@ export default function WorkoutPage({ params }: { params: Promise<{ id: string }
     }
     load()
   }, [id])
+
+  async function onPhotoPicked(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file || !user) return
+    setUploadingPhoto(true)
+    try {
+      const photo = await uploadWorkoutPhoto(file, user.id, id)
+      setPhotos((prev) => [...prev, photo])
+    } catch (err) {
+      alert(`Upload failed: ${(err as Error).message}`)
+    } finally {
+      setUploadingPhoto(false)
+      if (photoInputRef.current) photoInputRef.current.value = ''
+    }
+  }
+
+  async function confirmDeletePhoto() {
+    if (!photoToDelete) return
+    const target = photoToDelete
+    setPhotoToDelete(null)
+    await deleteWorkoutPhoto(target)
+    setPhotos((prev) => prev.filter((p) => p.id !== target.id))
+  }
 
   function addExercise(ex: Exercise) {
     setShowPicker(false)
@@ -366,6 +405,50 @@ export default function WorkoutPage({ params }: { params: Promise<{ id: string }
         style={{ background: 'var(--surface)', color: 'var(--text)', border: '1px solid var(--border)' }}
       />
 
+      {isOwner && (
+        <div className="mt-5">
+          <p className="text-xs font-semibold mb-2" style={{ color: 'var(--text-secondary)' }}>
+            Photos
+          </p>
+          {photos.length > 0 && (
+            <div className="grid grid-cols-2 gap-2 mb-2">
+              {photos.map((p) => (
+                <div key={p.id} className="relative aspect-square rounded-xl overflow-hidden">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={p.public_url} alt="Workout photo" className="w-full h-full object-cover" />
+                  <button
+                    onClick={() => setPhotoToDelete(p)}
+                    aria-label="Delete photo"
+                    className="absolute top-1.5 right-1.5 w-7 h-7 rounded-full flex items-center justify-center transition-opacity active:opacity-60"
+                    style={{ background: 'rgba(0,0,0,0.55)', color: '#fff' }}
+                  >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <line x1="18" y1="6" x2="6" y2="18" />
+                      <line x1="6" y1="6" x2="18" y2="18" />
+                    </svg>
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+          <button
+            onClick={() => photoInputRef.current?.click()}
+            disabled={uploadingPhoto}
+            className="w-full py-3 text-sm font-semibold rounded-2xl transition-colors disabled:opacity-60"
+            style={{ background: 'var(--surface)', color: 'var(--accent)', border: '1px solid var(--border)' }}
+          >
+            {uploadingPhoto ? 'Uploading…' : '+ Add Photo'}
+          </button>
+          <input
+            ref={photoInputRef}
+            type="file"
+            accept="image/*"
+            onChange={onPhotoPicked}
+            className="hidden"
+          />
+        </div>
+      )}
+
       {showPicker && (
         <ExercisePicker
           onSelect={addExercise}
@@ -382,6 +465,15 @@ export default function WorkoutPage({ params }: { params: Promise<{ id: string }
         destructive
         onConfirm={deleteWorkout}
         onCancel={() => setConfirmDelete(false)}
+      />
+
+      <ConfirmDialog
+        open={photoToDelete !== null}
+        title="Delete this photo?"
+        confirmLabel="Delete"
+        destructive
+        onConfirm={confirmDeletePhoto}
+        onCancel={() => setPhotoToDelete(null)}
       />
     </div>
   )

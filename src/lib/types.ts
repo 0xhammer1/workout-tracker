@@ -36,8 +36,15 @@ export type Database = {
         }
       }
       workouts: {
-        Row: { id: string; date: string; notes: string | null; category: string | null; created_at: string }
-        Insert: { id?: string; date?: string; notes?: string | null; category?: string | null }
+        Row: {
+          id: string
+          date: string
+          notes: string | null
+          category: string | null
+          user_id: string
+          created_at: string
+        }
+        Insert: { id?: string; date?: string; notes?: string | null; category?: string | null; user_id?: string }
         Update: { id?: string; date?: string; notes?: string | null; category?: string | null }
       }
       sets: {
