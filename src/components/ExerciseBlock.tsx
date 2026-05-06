@@ -28,10 +28,18 @@ interface Props {
 interface SetRow {
   id?: string
   reps: string
-  weight: string
+  weight: string  // number string, or 'BW' for bodyweight
   saved: boolean
   isDropSet: boolean
-  isBW: boolean
+}
+
+function isBWValue(v: string) {
+  const t = v.trim().toLowerCase()
+  return t === 'bw' || t === 'bodyweight'
+}
+
+function normalizeWeight(v: string) {
+  return isBWValue(v) ? 'BW' : v
 }
 
 export default function ExerciseBlock({ exercise, workoutId, onRemove, onDone, onMuscleGroupChange, initialSets }: Props) {
@@ -52,10 +60,9 @@ export default function ExerciseBlock({ exercise, workoutId, onRemove, onDone, o
         initialSets.map((s) => ({
           id: s.id,
           reps: s.reps !== null ? String(s.reps) : '',
-          weight: s.weight !== null ? String(s.weight) : '',
+          weight: bwOnLoad && s.weight === null ? 'BW' : (s.weight !== null ? String(s.weight) : ''),
           saved: true,
           isDropSet: s.is_drop_set ?? false,
-          isBW: bwOnLoad && s.weight === null,
         }))
       )
       getLastBest(exercise.id, workoutId, user.id).then((b) => {
@@ -72,51 +79,27 @@ export default function ExerciseBlock({ exercise, workoutId, onRemove, onDone, o
       setSets([
         {
           reps: s ? String(s.reps) : '',
-          weight: s ? String(s.weight) : '',
+          weight: bwOnLoad ? 'BW' : (s ? String(s.weight) : ''),
           saved: false,
           isDropSet: false,
-          isBW: bwOnLoad,
         },
       ])
     })
   }, [exercise.id, workoutId, initialSets, user?.id])
 
-  async function syncExerciseBW(nextSets: SetRow[]) {
-    const anyBW = nextSets.some((r) => r.isBW)
-    if (anyBW !== isBodyweight) {
-      setIsBodyweight(anyBW)
-      await supabase.from('exercises').update({ is_bodyweight: anyBW }).eq('id', exercise.id)
-    }
-  }
-
-  async function toggleRowBW(index: number) {
-    const next = !sets[index].isBW
-    const nextSets = sets.map((r, i) =>
-      i === index ? { ...r, isBW: next, weight: next ? '' : r.weight } : r
-    )
-    setSets(nextSets)
-    syncExerciseBW(nextSets)
-
-    // Immediately persist weight=null if toggling on and set already exists
-    const row = sets[index]
-    if (next && row.id) {
-      await supabase.from('sets').update({ weight: null }).eq('id', row.id)
-    }
-  }
-
   async function addSet() {
     const prev = sets[sets.length - 1]
     const repsStr = prev?.reps ?? ''
-    const weightStr = prev?.isBW ? '' : (prev?.weight ?? '')
-    const isBW = prev?.isBW ?? isBodyweight
+    const weightStr = prev?.weight ?? ''
     const tempIndex = sets.length
     const setNumber = tempIndex + 1
 
-    setSets((s) => [...s, { reps: repsStr, weight: weightStr, saved: false, isDropSet: false, isBW }])
+    setSets((s) => [...s, { reps: repsStr, weight: weightStr, saved: false, isDropSet: false }])
 
     const reps = parseInt(repsStr)
-    const weight = parseFloat(weightStr)
     if (reps && !isNaN(reps)) {
+      const bw = isBWValue(weightStr)
+      const weight = bw ? null : parseFloat(weightStr)
       const { data, error } = await supabase
         .from('sets')
         .insert({
@@ -124,15 +107,12 @@ export default function ExerciseBlock({ exercise, workoutId, onRemove, onDone, o
           exercise_id: exercise.id,
           set_number: setNumber,
           reps,
-          weight: isBW ? null : (isNaN(weight) ? null : weight),
+          weight: isNaN(weight as number) ? null : weight,
           is_drop_set: false,
         })
         .select()
         .single()
-      if (error) {
-        alert(`Failed to save set: ${error.message}`)
-        return
-      }
+      if (error) { alert(`Failed to save set: ${error.message}`); return }
       if (data) {
         setSets((s) =>
           s.map((r, i) => (i === tempIndex ? { ...r, id: data.id as string, saved: true } : r))
@@ -155,8 +135,8 @@ export default function ExerciseBlock({ exercise, workoutId, onRemove, onDone, o
     )
 
     const reps = parseInt(prev.reps)
-    const weight = parseFloat(prev.weight)
-    const isBW = prev.isBW
+    const bw = isBWValue(prev.weight)
+    const weight = bw ? null : parseFloat(prev.weight)
     let newId: string | undefined
 
     if (reps && !isNaN(reps)) {
@@ -167,7 +147,7 @@ export default function ExerciseBlock({ exercise, workoutId, onRemove, onDone, o
           exercise_id: exercise.id,
           set_number: insertSetNumber,
           reps,
-          weight: isBW ? null : (isNaN(weight) ? null : weight),
+          weight: isNaN(weight as number) ? null : weight,
           is_drop_set: true,
         })
         .select('id')
@@ -177,7 +157,7 @@ export default function ExerciseBlock({ exercise, workoutId, onRemove, onDone, o
 
     setSets((s) => [
       ...s.slice(0, afterIndex + 1),
-      { reps: prev.reps, weight: prev.weight, saved: !!newId, isDropSet: true, id: newId, isBW },
+      { reps: prev.reps, weight: prev.weight, saved: !!newId, isDropSet: true, id: newId },
       ...s.slice(afterIndex + 1),
     ])
   }
@@ -190,9 +170,16 @@ export default function ExerciseBlock({ exercise, workoutId, onRemove, onDone, o
     const reps = parseInt(repsStr)
     if (!reps || isNaN(reps)) return
 
-    const setNumber = index + 1
     const row = sets[index]
-    const weight = row.isBW ? null : parseFloat(weightStr)
+    const setNumber = index + 1
+    const bw = isBWValue(weightStr)
+    const weight = bw ? null : parseFloat(weightStr)
+
+    if (bw && !isBodyweight) {
+      setIsBodyweight(true)
+      supabase.from('exercises').update({ is_bodyweight: true }).eq('id', exercise.id)
+    }
+
     const payload = {
       workout_id: workoutId,
       exercise_id: exercise.id,
@@ -224,7 +211,6 @@ export default function ExerciseBlock({ exercise, workoutId, onRemove, onDone, o
 
     const remaining = sets.filter((_, i) => i !== index)
     setSets(remaining)
-    syncExerciseBW(remaining)
 
     await Promise.all(
       remaining.map((r, i) =>
@@ -305,32 +291,25 @@ export default function ExerciseBlock({ exercise, workoutId, onRemove, onDone, o
             >
               {row.isDropSet ? '↳' : normalSetNumber(i)}
             </span>
-
-            {row.isBW ? (
-              <button
-                onClick={() => toggleRowBW(i)}
-                className="w-full min-w-0 py-2.5 text-center text-base font-bold rounded-lg transition-colors"
-                style={{ background: 'var(--accent)', color: 'white' }}
-              >
-                BW
-              </button>
-            ) : (
-              <input
-                type="number"
-                inputMode="decimal"
-                placeholder="—"
-                value={row.weight}
-                onChange={(e) => updateSet(i, 'weight', e.target.value)}
-                onBlur={(e) => saveSetWithValues(i, row.reps, e.target.value)}
-                className="w-full min-w-0 px-2 py-2.5 text-center text-base font-medium rounded-lg outline-none transition-colors"
-                style={{
-                  background: 'var(--surface-elevated)',
-                  color: 'var(--text)',
-                  border: '1px solid var(--border)',
-                }}
-              />
-            )}
-
+            <input
+              type="text"
+              inputMode="decimal"
+              placeholder="—"
+              value={row.weight}
+              onChange={(e) => updateSet(i, 'weight', e.target.value)}
+              onBlur={(e) => {
+                const normalized = normalizeWeight(e.target.value)
+                updateSet(i, 'weight', normalized)
+                saveSetWithValues(i, row.reps, normalized)
+              }}
+              className="w-full min-w-0 px-2 py-2.5 text-center text-base font-medium rounded-lg outline-none transition-colors"
+              style={{
+                background: 'var(--surface-elevated)',
+                color: isBWValue(row.weight) ? 'var(--accent)' : 'var(--text)',
+                border: '1px solid var(--border)',
+                fontWeight: isBWValue(row.weight) ? 700 : undefined,
+              }}
+            />
             <input
               type="number"
               inputMode="numeric"
@@ -354,26 +333,13 @@ export default function ExerciseBlock({ exercise, workoutId, onRemove, onDone, o
               ×
             </button>
           </div>
-
-          <div
-            className="flex items-center gap-3 mb-2 text-xs"
-            style={{ paddingLeft: 'calc(1.75rem + 0.5rem)' }}
+          <button
+            onClick={() => addDropSet(i)}
+            className="text-xs mb-2 transition-opacity active:opacity-60"
+            style={{ color: 'var(--text-tertiary)', paddingLeft: 'calc(1.75rem + 0.5rem)' }}
           >
-            <button
-              onClick={() => addDropSet(i)}
-              className="transition-opacity active:opacity-60"
-              style={{ color: 'var(--text-tertiary)' }}
-            >
-              + drop set
-            </button>
-            <button
-              onClick={() => toggleRowBW(i)}
-              className="transition-opacity active:opacity-60 font-semibold"
-              style={{ color: row.isBW ? 'var(--accent)' : 'var(--text-tertiary)' }}
-            >
-              BW
-            </button>
-          </div>
+            + drop set
+          </button>
         </div>
       ))}
 
