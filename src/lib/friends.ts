@@ -107,6 +107,41 @@ export interface FeedWorkout {
   privacy: PrivacyLevel
 }
 
+export async function cloneWorkoutToMine(
+  sourceWorkoutId: string
+): Promise<{ newWorkoutId: string; exerciseIds: string[] } | { error: string }> {
+  // 1. Fetch the source workout (RLS lets friends read this when privacy != none)
+  const { data: source, error: srcErr } = await supabase
+    .from('workouts')
+    .select('id, category')
+    .eq('id', sourceWorkoutId)
+    .single()
+  if (srcErr || !source) return { error: srcErr?.message ?? 'Could not read workout' }
+
+  // 2. Pull distinct exercise IDs (requires the source owner to be on privacy=full)
+  const { data: sets, error: setsErr } = await supabase
+    .from('sets')
+    .select('exercise_id')
+    .eq('workout_id', sourceWorkoutId)
+  if (setsErr) return { error: setsErr.message }
+
+  const exerciseIds = [...new Set(((sets ?? []) as { exercise_id: string }[]).map((s) => s.exercise_id))]
+  if (exerciseIds.length === 0) {
+    return { error: "Couldn't load this workout's exercises. Owner may have set privacy below Full." }
+  }
+
+  // 3. Create a new workout for the current user, copying the category
+  const today = new Date().toISOString().split('T')[0]
+  const { data: created, error: createErr } = await supabase
+    .from('workouts')
+    .insert({ date: today, category: source.category })
+    .select('id')
+    .single()
+  if (createErr || !created) return { error: createErr?.message ?? 'Could not create workout' }
+
+  return { newWorkoutId: created.id as string, exerciseIds }
+}
+
 export async function loadFeed(selfId: string, friendIds: string[]): Promise<FeedWorkout[]> {
   const allIds = [selfId, ...friendIds]
   const { data: ws } = await supabase

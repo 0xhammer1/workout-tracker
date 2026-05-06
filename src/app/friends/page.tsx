@@ -9,10 +9,12 @@ import {
   deleteFriendRow,
   loadFriendData,
   loadFeed,
+  cloneWorkoutToMine,
   type FriendUser,
   type FriendRequestRow,
   type FeedWorkout,
 } from '@/lib/friends'
+import { useRouter } from 'next/navigation'
 import Avatar from '@/components/Avatar'
 import CategoryBadge from '@/components/CategoryBadge'
 import PhotoCard, { type CommenterInfo } from '@/components/PhotoCard'
@@ -33,7 +35,9 @@ interface FriendEntry {
 
 export default function FriendsPage() {
   const { user } = useAuth()
+  const router = useRouter()
   const [loading, setLoading] = useState(true)
+  const [cloning, setCloning] = useState<string | null>(null)
   const [friends, setFriends] = useState<FriendEntry[]>([])
   const [incoming, setIncoming] = useState<FriendEntry[]>([])
   const [outgoing, setOutgoing] = useState<FriendEntry[]>([])
@@ -115,6 +119,23 @@ export default function FriendsPage() {
 
   async function refreshSocialOnly() {
     await refreshSocial(feed)
+  }
+
+  async function useThisWorkout(workout: FeedWorkout) {
+    if (!user || cloning) return
+    setCloning(workout.id)
+    const result = await cloneWorkoutToMine(workout.id)
+    setCloning(null)
+    if ('error' in result) {
+      alert(result.error)
+      return
+    }
+    sessionStorage.setItem(
+      `suggestedExercises:${result.newWorkoutId}`,
+      JSON.stringify(result.exerciseIds)
+    )
+    sessionStorage.setItem('freshWorkoutId', result.newWorkoutId)
+    router.push(`/workout/${result.newWorkoutId}`)
   }
 
   useEffect(() => {
@@ -342,6 +363,8 @@ export default function FriendsPage() {
                 commenters={commenters}
                 currentUserId={user?.id ?? ''}
                 onSocialChange={refreshSocialOnly}
+                onUseWorkout={useThisWorkout}
+                cloning={cloning === w.id}
               />
             ))}
           </div>
@@ -416,6 +439,8 @@ interface FeedRowProps {
   commenters: Record<string, CommenterInfo>
   currentUserId: string
   onSocialChange: () => void
+  onUseWorkout: (workout: FeedWorkout) => void
+  cloning: boolean
 }
 
 function FeedRow({
@@ -426,7 +451,11 @@ function FeedRow({
   commenters,
   currentUserId,
   onSocialChange,
+  onUseWorkout,
+  cloning,
 }: FeedRowProps) {
+  const isOwn = workout.user_id === currentUserId
+  const canClone = !isOwn && workout.privacy === 'full'
   const name = workout.display_name ?? '—'
   const dateLabel = new Date(workout.date + 'T12:00:00').toLocaleDateString('en-US', {
     weekday: 'short',
@@ -475,6 +504,20 @@ function FeedRow({
             />
           ))}
         </div>
+      )}
+
+      {canClone && (
+        <button
+          onClick={() => onUseWorkout(workout)}
+          disabled={cloning}
+          className="mt-2 w-full py-2.5 text-sm font-semibold rounded-xl transition-all active:scale-[0.99] disabled:opacity-60 flex items-center justify-center gap-2"
+          style={{ background: 'var(--surface-elevated)', color: 'var(--accent)', border: '1px solid var(--border)' }}
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M5 12h14M13 18l6-6-6-6" />
+          </svg>
+          {cloning ? 'Loading…' : 'Use this workout'}
+        </button>
       )}
     </div>
   )
