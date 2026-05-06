@@ -38,10 +38,10 @@ export default function PhotoCard({
   const [submitting, setSubmitting] = useState(false)
   const [pendingReaction, setPendingReaction] = useState<'heart' | 'flame' | null>(null)
 
-  const heartCount = reactions.filter((r) => r.reaction === 'heart').length
-  const flameCount = reactions.filter((r) => r.reaction === 'flame').length
-  const myHeart = reactions.some((r) => r.reaction === 'heart' && r.user_id === currentUserId)
-  const myFlame = reactions.some((r) => r.reaction === 'flame' && r.user_id === currentUserId)
+  const flexCount = reactions.filter((r) => r.reaction === 'heart').length
+  const hotCount = reactions.filter((r) => r.reaction === 'flame').length
+  const myFlex = reactions.some((r) => r.reaction === 'heart' && r.user_id === currentUserId)
+  const myHot = reactions.some((r) => r.reaction === 'flame' && r.user_id === currentUserId)
 
   async function handleReact(kind: 'heart' | 'flame') {
     setPendingReaction(kind)
@@ -86,23 +86,11 @@ export default function PhotoCard({
             onClick={() => handleReact('heart')}
             disabled={pendingReaction !== null}
             className="flex items-center gap-1 transition-opacity active:opacity-60 disabled:opacity-40"
-            aria-label="Heart"
+            aria-label="Flex"
           >
-            <svg
-              width="22"
-              height="22"
-              viewBox="0 0 24 24"
-              fill={myHeart ? '#ef4444' : 'none'}
-              stroke={myHeart ? '#ef4444' : 'currentColor'}
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              style={{ color: 'var(--text-secondary)' }}
-            >
-              <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
-            </svg>
-            {heartCount > 0 && (
-              <span className="text-sm font-semibold tabular-nums">{heartCount}</span>
+            <span className="text-xl leading-none" style={{ opacity: myFlex ? 1 : 0.35 }}>💪</span>
+            {flexCount > 0 && (
+              <span className="text-sm font-semibold tabular-nums">{flexCount}</span>
             )}
           </button>
 
@@ -110,23 +98,11 @@ export default function PhotoCard({
             onClick={() => handleReact('flame')}
             disabled={pendingReaction !== null}
             className="flex items-center gap-1 transition-opacity active:opacity-60 disabled:opacity-40"
-            aria-label="Flame"
+            aria-label="Hot"
           >
-            <svg
-              width="22"
-              height="22"
-              viewBox="0 0 24 24"
-              fill={myFlame ? '#f97316' : 'none'}
-              stroke={myFlame ? '#f97316' : 'currentColor'}
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              style={{ color: 'var(--text-secondary)' }}
-            >
-              <path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z" />
-            </svg>
-            {flameCount > 0 && (
-              <span className="text-sm font-semibold tabular-nums">{flameCount}</span>
+            <span className="text-xl leading-none" style={{ opacity: myHot ? 1 : 0.35 }}>🥵</span>
+            {hotCount > 0 && (
+              <span className="text-sm font-semibold tabular-nums">{hotCount}</span>
             )}
           </button>
 

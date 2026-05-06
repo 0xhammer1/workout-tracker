@@ -385,7 +385,7 @@ export default function FriendsPage() {
       {friends.length > 0 && (
         <Section title={`Friends (${friends.length})`}>
           {friends.map((entry) => (
-            <Row key={entry.request.id} entry={entry}>
+            <Row key={entry.request.id} entry={entry} href={`/friends/${entry.other.id}`}>
               <button
                 onClick={() => unfriend(entry)}
                 className="text-sm font-medium transition-opacity active:opacity-60"
@@ -419,14 +419,16 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 
 function Row({
   entry,
+  href,
   children,
 }: {
   entry: FriendEntry
+  href?: string
   children: React.ReactNode
 }) {
   const name = entry.other.display_name ?? entry.other.email ?? '—'
-  return (
-    <div className="flex items-center gap-3 px-2 py-2">
+  const identity = (
+    <>
       <div
         className="w-10 h-10 rounded-full overflow-hidden shrink-0"
         style={{ border: '1px solid var(--border)' }}
@@ -436,6 +438,17 @@ function Row({
       <div className="flex-1 min-w-0">
         <p className="text-sm font-semibold truncate">{name}</p>
       </div>
+    </>
+  )
+  return (
+    <div className="flex items-center gap-3 px-2 py-2">
+      {href ? (
+        <Link href={href} className="flex items-center gap-3 flex-1 min-w-0 active:opacity-70">
+          {identity}
+        </Link>
+      ) : (
+        <>{identity}</>
+      )}
       <div className="flex items-center gap-2 shrink-0">{children}</div>
     </div>
   )
@@ -488,15 +501,34 @@ function FeedRow({
       style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}
     >
       <div className="flex items-center gap-3 mb-1">
-        <div
-          className="w-10 h-10 rounded-full overflow-hidden shrink-0"
-          style={{ border: '1px solid var(--border)' }}
-        >
-          <Avatar src={workout.avatar_url} name={name} size={40} />
-        </div>
+        {isOwn ? (
+          <div
+            className="w-10 h-10 rounded-full overflow-hidden shrink-0"
+            style={{ border: '1px solid var(--border)' }}
+          >
+            <Avatar src={workout.avatar_url} name={name} size={40} />
+          </div>
+        ) : (
+          <Link
+            href={`/friends/${workout.user_id}`}
+            className="w-10 h-10 rounded-full overflow-hidden shrink-0 active:opacity-70"
+            style={{ border: '1px solid var(--border)' }}
+          >
+            <Avatar src={workout.avatar_url} name={name} size={40} />
+          </Link>
+        )}
         <div className="flex-1 min-w-0">
           <p className="text-sm">
-            <span className="font-semibold">{name}</span>
+            {isOwn ? (
+              <span className="font-semibold">{name}</span>
+            ) : (
+              <Link
+                href={`/friends/${workout.user_id}`}
+                className="font-semibold active:opacity-70"
+              >
+                {name}
+              </Link>
+            )}
             <span style={{ color: 'var(--text-secondary)' }}> {action}</span>
           </p>
           <p className="text-xs" style={{ color: 'var(--text-tertiary)' }}>
