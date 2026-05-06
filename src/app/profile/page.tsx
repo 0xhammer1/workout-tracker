@@ -506,7 +506,7 @@ export default function ProfilePage() {
             placeholder="Weight"
             value={weightInput}
             onChange={(e) => setWeightInput(e.target.value)}
-            className="flex-1 px-4 py-3 text-base font-medium rounded-xl outline-none"
+            className="flex-1 min-w-0 px-4 py-3 text-base font-medium rounded-xl outline-none"
             style={{
               background: 'var(--surface-elevated)',
               color: 'var(--text)',
@@ -517,7 +517,7 @@ export default function ProfilePage() {
             type="date"
             value={dateInput}
             onChange={(e) => setDateInput(e.target.value)}
-            className="px-3 py-3 text-base rounded-xl outline-none"
+            className="w-36 shrink-0 px-3 py-3 text-base rounded-xl outline-none"
             style={{
               background: 'var(--surface-elevated)',
               color: 'var(--text)',
@@ -528,7 +528,7 @@ export default function ProfilePage() {
           <button
             onClick={logWeight}
             disabled={saving || !weightInput}
-            className="px-5 py-3 text-sm font-semibold rounded-xl transition-all active:scale-95 disabled:opacity-40"
+            className="shrink-0 px-5 py-3 text-sm font-semibold rounded-xl transition-all active:scale-95 disabled:opacity-40"
             style={{ background: 'var(--accent)', color: 'white' }}
           >
             {saving ? '…' : 'Log'}
