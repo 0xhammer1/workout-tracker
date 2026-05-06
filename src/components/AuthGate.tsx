@@ -18,10 +18,10 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
     if (loading) return
     if (!session && !isPublic) { router.replace('/login'); return }
     if (session && pathname === '/login') { router.replace('/'); return }
-    // onboardingComplete === null means still loading from DB — wait
-    if (session && onboardingComplete === false && !isOnboarding) {
-      router.replace('/onboarding')
-    }
+    // Onboarding redirect disabled — re-enable when flow is ready:
+    // if (session && onboardingComplete === false && !isOnboarding) {
+    //   router.replace('/onboarding')
+    // }
   }, [session, loading, isPublic, isOnboarding, pathname, onboardingComplete, router])
 
   if (loading) {
