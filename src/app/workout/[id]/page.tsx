@@ -70,6 +70,7 @@ interface SetData {
   set_number: number
   reps: number | null
   weight: number | null
+  is_drop_set?: boolean
 }
 
 interface ExerciseEntry {
@@ -118,7 +119,7 @@ export default function WorkoutPage({ params }: { params: Promise<{ id: string }
 
       const { data: setsRaw } = await supabase
         .from('sets')
-        .select('id, set_number, reps, weight, exercise_id, exercises!inner(id, name, muscle_group, created_at)')
+        .select('id, set_number, reps, weight, is_drop_set, exercise_id, exercises!inner(id, name, muscle_group, is_bodyweight, created_at)')
         .eq('workout_id', id)
         .order('set_number', { ascending: true })
 
@@ -132,6 +133,7 @@ export default function WorkoutPage({ params }: { params: Promise<{ id: string }
             set_number: row.set_number,
             reps: row.reps !== null ? Number(row.reps) : null,
             weight: row.weight !== null ? Number(row.weight) : null,
+            is_drop_set: row.is_drop_set ?? false,
           })
         }
       }
@@ -146,7 +148,7 @@ export default function WorkoutPage({ params }: { params: Promise<{ id: string }
           if (missing.length > 0) {
             const { data: exData } = await supabase
               .from('exercises')
-              .select('id, name, muscle_group, created_at')
+              .select('id, name, muscle_group, is_bodyweight, created_at')
               .in('id', missing)
             for (const ex of (exData ?? []) as Exercise[]) {
               map.set(ex.id, { exercise: ex, sets: [] })
@@ -305,7 +307,7 @@ export default function WorkoutPage({ params }: { params: Promise<{ id: string }
   async function reloadExerciseSets(exerciseId: string) {
     const { data } = await supabase
       .from('sets')
-      .select('id, set_number, reps, weight')
+      .select('id, set_number, reps, weight, is_drop_set')
       .eq('workout_id', id)
       .eq('exercise_id', exerciseId)
       .order('set_number', { ascending: true })
@@ -322,6 +324,7 @@ export default function WorkoutPage({ params }: { params: Promise<{ id: string }
                 set_number: s.set_number,
                 reps: s.reps !== null ? Number(s.reps) : null,
                 weight: s.weight !== null ? Number(s.weight) : null,
+                is_drop_set: s.is_drop_set ?? false,
               })),
             }
           : e

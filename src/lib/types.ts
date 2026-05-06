@@ -11,6 +11,7 @@ export type Database = {
           instructions: string | null
           image_url: string | null
           wger_id: number | null
+          is_bodyweight: boolean | null
           created_at: string
         }
         Insert: {
@@ -22,6 +23,7 @@ export type Database = {
           instructions?: string | null
           image_url?: string | null
           wger_id?: number | null
+          is_bodyweight?: boolean | null
           created_at?: string
         }
         Update: {
@@ -33,6 +35,7 @@ export type Database = {
           instructions?: string | null
           image_url?: string | null
           wger_id?: number | null
+          is_bodyweight?: boolean | null
         }
       }
       workouts: {
@@ -55,6 +58,7 @@ export type Database = {
           set_number: number
           reps: number | null
           weight: number | null
+          is_drop_set: boolean | null
           created_at: string
         }
         Insert: {
@@ -64,10 +68,13 @@ export type Database = {
           set_number: number
           reps?: number | null
           weight?: number | null
+          is_drop_set?: boolean | null
         }
         Update: {
           reps?: number | null
           weight?: number | null
+          set_number?: number
+          is_drop_set?: boolean | null
         }
       }
     }
