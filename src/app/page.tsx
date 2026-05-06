@@ -32,6 +32,7 @@ export default function Home() {
   const [displayName, setDisplayName] = useState<string>('')
   const [queued, setQueued] = useState<QueuedWorkoutInfo | null>(null)
   const [queuedExerciseNames, setQueuedExerciseNames] = useState<Exercise[]>([])
+  const [friendRequestCount, setFriendRequestCount] = useState(0)
 
   useEffect(() => {
     if (!user) return
@@ -63,6 +64,16 @@ export default function Home() {
         setQueuedExerciseNames([])
       }
     })
+  }, [user?.id])
+
+  useEffect(() => {
+    if (!user) return
+    supabase
+      .from('friend_requests')
+      .select('id', { count: 'exact', head: true })
+      .eq('to_user_id', user.id)
+      .eq('status', 'pending')
+      .then(({ count }) => setFriendRequestCount(count ?? 0))
   }, [user?.id])
 
   useEffect(() => {
@@ -139,6 +150,29 @@ export default function Home() {
 
   return (
     <div>
+      {friendRequestCount > 0 && (
+        <Link
+          href="/friends"
+          className="flex items-center gap-3 px-4 py-3 rounded-2xl mt-4 mb-2 transition-opacity active:opacity-80"
+          style={{ background: 'rgba(99,102,241,0.12)', border: '1px solid rgba(99,102,241,0.3)' }}
+        >
+          <div
+            className="w-8 h-8 rounded-full flex items-center justify-center shrink-0 text-sm font-bold"
+            style={{ background: 'var(--accent)', color: 'white' }}
+          >
+            {friendRequestCount}
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-semibold">
+              {friendRequestCount === 1
+                ? 'You have 1 friend request to review!'
+                : `You have ${friendRequestCount} friend requests to review!`}
+            </p>
+          </div>
+          <span style={{ color: 'var(--accent)' }}>›</span>
+        </Link>
+      )}
+
       <header className="pt-8 pb-8">
         <p className="text-sm font-medium" style={{ color: 'var(--text-secondary)' }}>
           {greeting}

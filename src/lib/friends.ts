@@ -129,6 +129,13 @@ export async function queueWorkoutFromFriend(
       { onConflict: 'user_id' }
     )
   if (error) return { error: error.message }
+
+  // Record copy event for influence badges (ignore errors — non-critical)
+  await supabase.from('workout_copies').upsert(
+    { source_workout_id: sourceWorkoutId, source_user_id: sourceUserId, copier_user_id: selfId },
+    { onConflict: 'source_workout_id,copier_user_id' }
+  )
+
   return { ok: true }
 }
 
@@ -223,6 +230,7 @@ export interface FriendProfileData {
   categoriesEverDone: Set<string>
   photoCount: number
   maxPhotoReactions: number
+  workoutCopyCount: number
   recentWorkouts: FriendProfileWorkout[]
 }
 
@@ -241,7 +249,7 @@ export async function loadFriendProfile(
 
   if (!req) return null
 
-  const [{ data: profileRow }, { data: ws }, { data: photos }] = await Promise.all([
+  const [{ data: profileRow }, { data: ws }, { data: photos }, { count: copyCount }] = await Promise.all([
     supabase
       .from('user_profiles')
       .select('display_name, avatar_url, default_privacy')
@@ -253,6 +261,7 @@ export async function loadFriendProfile(
       .eq('user_id', friendId)
       .order('date', { ascending: false }),
     supabase.from('workout_photos').select('id').eq('user_id', friendId),
+    supabase.from('workout_copies').select('id', { count: 'exact', head: true }).eq('source_user_id', friendId),
   ])
 
   const privacyLevel = ((profileRow?.default_privacy as string) || 'full') as PrivacyLevel
@@ -293,6 +302,7 @@ export async function loadFriendProfile(
     categoriesEverDone,
     photoCount: ps.length,
     maxPhotoReactions,
+    workoutCopyCount: copyCount ?? 0,
     recentWorkouts,
   }
 }

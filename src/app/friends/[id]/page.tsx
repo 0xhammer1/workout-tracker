@@ -73,6 +73,7 @@ export default function FriendProfilePage({ params }: { params: Promise<{ id: st
     categoriesEverDone: data.categoriesEverDone,
     photoCount: data.photoCount,
     maxPhotoReactions: data.maxPhotoReactions,
+    workoutCopyCount: data.workoutCopyCount,
   })
   const previewBadgeList = previewBadges(earnedIds)
 
@@ -217,13 +218,13 @@ export default function FriendProfilePage({ params }: { params: Promise<{ id: st
                 </svg>
               </button>
             </div>
-            {(['count', 'type', 'photo', 'reactions'] as BadgeCategory[]).map((cat) => {
+            {(['count', 'type', 'social', 'influence'] as BadgeCategory[]).map((cat) => {
               const items = BADGES.filter((b) => b.category === cat)
               const labels: Record<BadgeCategory, string> = {
                 count: 'Workout Milestones',
                 type: 'Workout Types',
-                photo: 'Photos',
-                reactions: 'Likes',
+                social: 'Social',
+                influence: 'Influence',
               }
               return (
                 <div key={cat} className="mb-5 last:mb-0">

@@ -172,9 +172,10 @@ export default function ProfilePage() {
   useEffect(() => {
     if (!user) return
     async function loadStats() {
-      const [{ data: workouts }, { data: photos }] = await Promise.all([
+      const [{ data: workouts }, { data: photos }, { count: copyCount }] = await Promise.all([
         supabase.from('workouts').select('category').eq('user_id', user!.id),
         supabase.from('workout_photos').select('id').eq('user_id', user!.id),
+        supabase.from('workout_copies').select('id', { count: 'exact', head: true }).eq('source_user_id', user!.id),
       ])
       const ws = (workouts ?? []) as { category: string | null }[]
       const ps = (photos ?? []) as { id: string }[]
@@ -200,6 +201,7 @@ export default function ProfilePage() {
         categoriesEverDone: cats,
         photoCount: ps.length,
         maxPhotoReactions: maxReactions,
+        workoutCopyCount: copyCount ?? 0,
       })
       setEarnedIds(earned)
 
@@ -438,13 +440,13 @@ export default function ProfilePage() {
                 </svg>
               </button>
             </div>
-            {(['count', 'type', 'photo', 'reactions'] as BadgeCategory[]).map((cat) => {
+            {(['count', 'type', 'social', 'influence'] as BadgeCategory[]).map((cat) => {
               const items = BADGES.filter((b) => b.category === cat)
               const labels: Record<BadgeCategory, string> = {
                 count: 'Workout Milestones',
                 type: 'Workout Types',
-                photo: 'Photos',
-                reactions: 'Likes',
+                social: 'Social',
+                influence: 'Influence',
               }
               return (
                 <div key={cat} className="mb-5 last:mb-0">
