@@ -121,6 +121,7 @@ export default function WorkoutPage({ params }: { params: Promise<{ id: string }
         .from('sets')
         .select('id, set_number, reps, weight, is_drop_set, exercise_id, exercises!inner(id, name, muscle_group, is_bodyweight, created_at)')
         .eq('workout_id', id)
+        .order('created_at', { ascending: true })
         .order('set_number', { ascending: true })
 
       const map = new Map<string, ExerciseEntry>()
