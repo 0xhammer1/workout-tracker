@@ -468,7 +468,9 @@ function FeedRow({
 }: FeedRowProps) {
   const isOwn = workout.user_id === currentUserId
   const canClone = !isOwn && workout.privacy === 'full'
-  const showDetailsLink = !isOwn && workout.privacy === 'full'
+  // Owner can always view their own workout in detail; friends can only when
+  // the owner is sharing on Full.
+  const showDetailsLink = isOwn || workout.privacy === 'full'
   const friendFirstName = (workout.display_name ?? '').split(' ')[0] || 'their'
   const name = workout.display_name ?? '—'
   const dateLabel = new Date(workout.date + 'T12:00:00').toLocaleDateString('en-US', {
@@ -504,24 +506,8 @@ function FeedRow({
         {workout.category && <CategoryBadge category={workout.category} />}
       </div>
 
-      {photos.length > 0 && (
-        <div className="mt-2">
-          {photos.map((p) => (
-            <PhotoCard
-              key={p.id}
-              photo={p}
-              reactions={reactionsByPhoto[p.id] ?? []}
-              comments={commentsByPhoto[p.id] ?? []}
-              currentUserId={currentUserId}
-              commenters={commenters}
-              onChange={onSocialChange}
-            />
-          ))}
-        </div>
-      )}
-
       {(showDetailsLink || canClone) && (
-        <div className="mt-2 flex flex-col gap-2">
+        <div className="mt-3 flex flex-col gap-2">
           <div className="flex items-center gap-2">
             {showDetailsLink && (
               <Link
@@ -563,6 +549,22 @@ function FeedRow({
               Saved as your next workout. Start it from the Home tab.
             </p>
           )}
+        </div>
+      )}
+
+      {photos.length > 0 && (
+        <div className="mt-3">
+          {photos.map((p) => (
+            <PhotoCard
+              key={p.id}
+              photo={p}
+              reactions={reactionsByPhoto[p.id] ?? []}
+              comments={commentsByPhoto[p.id] ?? []}
+              currentUserId={currentUserId}
+              commenters={commenters}
+              onChange={onSocialChange}
+            />
+          ))}
         </div>
       )}
     </div>

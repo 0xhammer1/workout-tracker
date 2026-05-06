@@ -419,40 +419,73 @@ export default function WorkoutPage({ params }: { params: Promise<{ id: string }
 
       {isOwner && (
         <div className="mb-5">
-          {photos.length > 0 && (
-            <div className="grid grid-cols-2 gap-2 mb-2">
-              {photos.map((p) => (
-                <div key={p.id} className="relative aspect-square rounded-xl overflow-hidden">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={p.public_url} alt="Workout photo" className="w-full h-full object-cover" />
-                  <button
-                    onClick={() => setPhotoToDelete(p)}
-                    aria-label="Delete photo"
-                    className="absolute top-1.5 right-1.5 w-7 h-7 rounded-full flex items-center justify-center transition-opacity active:opacity-60"
-                    style={{ background: 'rgba(0,0,0,0.55)', color: '#fff' }}
-                  >
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                      <line x1="18" y1="6" x2="6" y2="18" />
-                      <line x1="6" y1="6" x2="18" y2="18" />
-                    </svg>
-                  </button>
+          {photos.length > 0 ? (
+            <>
+              <div className="grid grid-cols-2 gap-2 mb-2">
+                {photos.map((p) => (
+                  <div key={p.id} className="relative aspect-square rounded-xl overflow-hidden">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={p.public_url} alt="Workout photo" className="w-full h-full object-cover" />
+                    <button
+                      onClick={() => setPhotoToDelete(p)}
+                      aria-label="Delete photo"
+                      className="absolute top-1.5 right-1.5 w-7 h-7 rounded-full flex items-center justify-center transition-opacity active:opacity-60"
+                      style={{ background: 'rgba(0,0,0,0.55)', color: '#fff' }}
+                    >
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <line x1="18" y1="6" x2="6" y2="18" />
+                        <line x1="6" y1="6" x2="18" y2="18" />
+                      </svg>
+                    </button>
+                  </div>
+                ))}
+              </div>
+              <button
+                onClick={() => photoInputRef.current?.click()}
+                disabled={uploadingPhoto}
+                className="w-full py-3 text-sm font-semibold rounded-2xl transition-colors disabled:opacity-60 flex items-center justify-center gap-2"
+                style={{ background: 'var(--surface)', color: 'var(--accent)', border: '1px solid var(--border)' }}
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                  <circle cx="8.5" cy="8.5" r="1.5" />
+                  <polyline points="21 15 16 10 5 21" />
+                </svg>
+                {uploadingPhoto ? 'Uploading…' : 'Add Another Photo'}
+              </button>
+            </>
+          ) : (
+            <button
+              onClick={() => photoInputRef.current?.click()}
+              disabled={uploadingPhoto}
+              className="w-full px-4 py-4 rounded-2xl transition-colors disabled:opacity-60 text-left"
+              style={{
+                background: 'linear-gradient(135deg, rgba(99,102,241,0.18), rgba(99,102,241,0.06))',
+                border: '1px solid rgba(99,102,241,0.35)',
+              }}
+            >
+              <div className="flex items-center gap-3">
+                <div
+                  className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
+                  style={{ background: 'var(--accent)', color: 'white' }}
+                >
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                    <circle cx="8.5" cy="8.5" r="1.5" />
+                    <polyline points="21 15 16 10 5 21" />
+                  </svg>
                 </div>
-              ))}
-            </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-semibold">
+                    {uploadingPhoto ? 'Uploading…' : 'Share your progress with your friends!'}
+                  </p>
+                  <p className="text-xs mt-0.5" style={{ color: 'var(--text-secondary)' }}>
+                    Tap to add a photo.
+                  </p>
+                </div>
+              </div>
+            </button>
           )}
-          <button
-            onClick={() => photoInputRef.current?.click()}
-            disabled={uploadingPhoto}
-            className="w-full py-3 text-sm font-semibold rounded-2xl transition-colors disabled:opacity-60 flex items-center justify-center gap-2"
-            style={{ background: 'var(--surface)', color: 'var(--accent)', border: '1px solid var(--border)' }}
-          >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
-              <circle cx="8.5" cy="8.5" r="1.5" />
-              <polyline points="21 15 16 10 5 21" />
-            </svg>
-            {uploadingPhoto ? 'Uploading…' : photos.length > 0 ? 'Add Another Photo' : 'Add Photo'}
-          </button>
           <input
             ref={photoInputRef}
             type="file"
