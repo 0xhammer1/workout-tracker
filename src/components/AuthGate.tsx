@@ -16,7 +16,13 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (loading) return
-    if (!session && !isPublic) { router.replace('/login'); return }
+    if (!session && !isPublic) {
+      if (typeof window !== 'undefined' && pathname.startsWith('/workout/')) {
+        sessionStorage.setItem('loginRef', pathname)
+      }
+      router.replace('/login')
+      return
+    }
     if (session && pathname === '/login') { router.replace('/'); return }
     // Onboarding redirect disabled — re-enable when flow is ready:
     // if (session && onboardingComplete === false && !isOnboarding) {
