@@ -436,14 +436,15 @@ export default function WorkoutPage({ params }: { params: Promise<{ id: string }
 
   async function shareWorkout() {
     const url = window.location.href
+    const text = 'Check out my workout on Lift Labs!'
     if (navigator.share) {
       try {
-        await navigator.share({ url, title: `${dateLabel} – Workout` })
+        await navigator.share({ url, text })
       } catch {
         // user cancelled share sheet
       }
     } else {
-      await navigator.clipboard.writeText(url)
+      await navigator.clipboard.writeText(`${text}\n${url}`)
       toast.success('Link copied!')
     }
   }
