@@ -2,6 +2,7 @@
 
 import { useState, useEffect, use, useRef } from 'react'
 import { useRouter } from 'next/navigation'
+import { toast } from 'sonner'
 import confetti from 'canvas-confetti'
 import { supabase } from '@/lib/supabase'
 import type { Exercise, Workout } from '@/lib/types'
@@ -259,7 +260,7 @@ export default function WorkoutPage({ params }: { params: Promise<{ id: string }
         if (count !== 1) finishAndExit()
       }
     } catch (err) {
-      alert(`Upload failed: ${(err as Error).message}`)
+      toast.error('Upload failed')
     } finally {
       setUploadingPhoto(false)
       if (photoInputRef.current) photoInputRef.current.value = ''
@@ -354,8 +355,13 @@ export default function WorkoutPage({ params }: { params: Promise<{ id: string }
 
   async function finishWorkout() {
     setSaving(true)
-    await supabase.from('workouts').update({ notes: notes || null, category: category || null }).eq('id', id)
+    const { error } = await supabase.from('workouts').update({ notes: notes || null, category: category || null }).eq('id', id)
     setSaving(false)
+
+    if (error) {
+      toast.error('Failed to save workout')
+      return
+    }
 
     const newlyEarned = await checkBadgesOnDone()
     if (newlyEarned.length > 0) {

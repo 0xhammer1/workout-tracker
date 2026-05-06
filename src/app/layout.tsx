@@ -4,6 +4,7 @@ import './globals.css'
 import Nav from '@/components/Nav'
 import { AuthProvider } from '@/lib/auth'
 import AuthGate from '@/components/AuthGate'
+import { Toaster } from 'sonner'
 
 const geist = Geist({ subsets: ['latin'] })
 
@@ -42,6 +43,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <NavWithAuth />
           </AuthGate>
         </AuthProvider>
+        <Toaster position="bottom-center" />
       </body>
     </html>
   )
