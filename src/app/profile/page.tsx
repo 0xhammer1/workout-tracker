@@ -18,6 +18,13 @@ import Avatar from '@/components/Avatar'
 import { resizeImageToDataUrl } from '@/lib/imageResize'
 import { useAuth, signOut } from '@/lib/auth'
 import { localDateStr } from '@/lib/dates'
+import {
+  BADGES,
+  earnedBadgeIds,
+  previewBadges,
+  type BadgeCategory,
+} from '@/lib/badges'
+import { BadgeChip, BadgeRow } from '@/components/BadgeChip'
 
 interface WeightLog {
   id: string
@@ -59,6 +66,9 @@ export default function ProfilePage() {
   const [nameDraft, setNameDraft] = useState('')
   const fileInputRef = useRef<HTMLInputElement>(null)
   const { user } = useAuth()
+  const [workoutCount, setWorkoutCount] = useState(0)
+  const [earnedIds, setEarnedIds] = useState<Set<string>>(new Set())
+  const [showAllBadges, setShowAllBadges] = useState(false)
 
   async function loadProfile() {
     if (!user) return
@@ -154,6 +164,33 @@ export default function ProfilePage() {
     if (user) loadProfile()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id])
+
+  useEffect(() => {
+    if (!user) return
+    async function loadStats() {
+      const [{ data: workouts }, { count: photoCount }] = await Promise.all([
+        supabase.from('workouts').select('category').eq('user_id', user!.id),
+        supabase
+          .from('workout_photos')
+          .select('id', { count: 'exact', head: true })
+          .eq('user_id', user!.id),
+      ])
+      const ws = (workouts ?? []) as { category: string | null }[]
+      const cats = new Set<string>()
+      for (const w of ws) if (w.category) cats.add(w.category)
+      setWorkoutCount(ws.length)
+      setEarnedIds(
+        earnedBadgeIds({
+          workoutCount: ws.length,
+          categoriesEverDone: cats,
+          photoCount: photoCount ?? 0,
+        })
+      )
+    }
+    loadStats()
+  }, [user?.id])
+
+  const previewBadgeList = previewBadges(earnedIds)
 
   async function logWeight() {
     const w = parseFloat(weightInput)
@@ -286,6 +323,96 @@ export default function ProfilePage() {
                 Close
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Lifetime stats */}
+      <div
+        className="rounded-2xl p-5 mb-3"
+        style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}
+      >
+        <p className="text-xs font-semibold mb-1" style={{ color: 'var(--text-secondary)' }}>
+          Lifetime Workouts
+        </p>
+        <p className="text-4xl font-bold tracking-tight tabular-nums">{workoutCount}</p>
+      </div>
+
+      {/* Badges */}
+      <div
+        className="rounded-2xl p-5 mb-3"
+        style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}
+      >
+        <div className="flex items-center justify-between mb-3">
+          <p className="text-xs font-semibold" style={{ color: 'var(--text-secondary)' }}>
+            Badges
+          </p>
+          <button
+            onClick={() => setShowAllBadges(true)}
+            className="text-xs font-semibold transition-opacity active:opacity-60"
+            style={{ color: 'var(--accent)' }}
+          >
+            See all
+          </button>
+        </div>
+        {previewBadgeList.length === 0 ? (
+          <p className="text-sm" style={{ color: 'var(--text-tertiary)' }}>
+            Earn your first badge by logging a workout.
+          </p>
+        ) : (
+          <div className="flex flex-wrap gap-2">
+            {previewBadgeList.map((b) => (
+              <BadgeChip key={b.id} badge={b} earned />
+            ))}
+          </div>
+        )}
+      </div>
+
+      {showAllBadges && (
+        <div
+          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center px-4 pb-6 sm:pb-0"
+          style={{ background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(8px)' }}
+          onClick={() => setShowAllBadges(false)}
+        >
+          <div
+            className="w-full max-w-md max-h-[85vh] overflow-y-auto rounded-3xl p-5"
+            style={{ background: 'var(--surface-elevated)', border: '1px solid var(--border)' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-bold tracking-tight">All Badges</h2>
+              <button
+                onClick={() => setShowAllBadges(false)}
+                aria-label="Close"
+                className="w-8 h-8 flex items-center justify-center rounded-full transition-colors active:bg-white/10"
+                style={{ color: 'var(--text-secondary)' }}
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="18" y1="6" x2="6" y2="18" />
+                  <line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+              </button>
+            </div>
+            {(['count', 'type', 'photo'] as BadgeCategory[]).map((cat) => {
+              const items = BADGES.filter((b) => b.category === cat)
+              const labels: Record<BadgeCategory, string> = {
+                count: 'Workout Milestones',
+                type: 'Workout Types',
+                photo: 'Photos',
+              }
+              return (
+                <div key={cat} className="mb-5 last:mb-0">
+                  <p className="text-xs font-semibold tracking-wider uppercase mb-2" style={{ color: 'var(--text-secondary)' }}>
+                    {labels[cat]}
+                  </p>
+                  <div className="grid grid-cols-2 gap-2">
+                    {items.map((b) => (
+                      <BadgeRow key={b.id} badge={b} earned={earnedIds.has(b.id)} />
+                    ))}
+                  </div>
+                </div>
+              )
+            })}
           </div>
         </div>
       )}

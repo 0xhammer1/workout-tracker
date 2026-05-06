@@ -25,6 +25,12 @@ import PhotoCard, { type CommenterInfo } from '@/components/PhotoCard'
 import CategoryBadge from '@/components/CategoryBadge'
 import Avatar from '@/components/Avatar'
 import { localDateStr } from '@/lib/dates'
+import {
+  COUNT_MILESTONES,
+  badgeById,
+  type Badge,
+} from '@/lib/badges'
+import BadgeCelebration from '@/components/BadgeCelebration'
 
 function fireworks() {
   const duration = 800
@@ -86,6 +92,7 @@ export default function WorkoutPage({ params }: { params: Promise<{ id: string }
   const [uploadingPhoto, setUploadingPhoto] = useState(false)
   const [photoToDelete, setPhotoToDelete] = useState<WorkoutPhoto | null>(null)
   const [showPhotoPrompt, setShowPhotoPrompt] = useState(false)
+  const [pendingBadges, setPendingBadges] = useState<Badge[]>([])
   const [reactionsByPhoto, setReactionsByPhoto] = useState<Record<string, PhotoReaction[]>>({})
   const [commentsByPhoto, setCommentsByPhoto] = useState<Record<string, PhotoComment[]>>({})
   const [commenters, setCommenters] = useState<Record<string, CommenterInfo>>({})
@@ -229,10 +236,27 @@ export default function WorkoutPage({ params }: { params: Promise<{ id: string }
     try {
       const photo = await uploadWorkoutPhoto(file, user.id, id)
       setPhotos((prev) => [...prev, photo])
-      // If the prompt was open (post-Done), upload's done — exit to home
+
+      // First thirst trap ever for this user? Celebrate.
+      const { count } = await supabase
+        .from('workout_photos')
+        .select('id', { count: 'exact', head: true })
+        .eq('user_id', user.id)
+      if (count === 1) {
+        const b = badgeById('photo_first')
+        if (b) {
+          // Stash so we show it after the post-Done flow if applicable, or
+          // immediately otherwise.
+          setPendingBadges((prev) => [...prev, b])
+        }
+      }
+
+      // If the prompt was open (post-Done), upload's done — exit after badges
       if (wasPromptOpen) {
         setShowPhotoPrompt(false)
-        finishAndExit()
+        // If the photo badge wasn't fired, exit immediately. If it was, the
+        // dismissBadge handler will exit when the queue drains.
+        if (count !== 1) finishAndExit()
       }
     } catch (err) {
       alert(`Upload failed: ${(err as Error).message}`)
@@ -333,12 +357,64 @@ export default function WorkoutPage({ params }: { params: Promise<{ id: string }
     await supabase.from('workouts').update({ notes: notes || null, category: category || null }).eq('id', id)
     setSaving(false)
 
+    const newlyEarned = await checkBadgesOnDone()
+    if (newlyEarned.length > 0) {
+      setPendingBadges(newlyEarned)
+      return
+    }
+
     // Prompt to add a photo if there isn't one yet — encourages sharing
     if (isOwner && photos.length === 0) {
       setShowPhotoPrompt(true)
       return
     }
     finishAndExit()
+  }
+
+  async function checkBadgesOnDone(): Promise<Badge[]> {
+    if (!user) return []
+    const { data: ws } = await supabase
+      .from('workouts')
+      .select('id, category')
+      .eq('user_id', user.id)
+    const list = (ws ?? []) as { category: string | null }[]
+    const out: Badge[] = []
+
+    // Count milestone: did this finish push the total exactly to a milestone?
+    const total = list.length
+    for (const n of COUNT_MILESTONES) {
+      if (total === n) {
+        const b = badgeById(`count_${n}`)
+        if (b) out.push(b)
+      }
+    }
+
+    // Type first: this workout's category appears exactly once across all workouts.
+    const c = category
+    if (c === 'push' || c === 'pull' || c === 'legs') {
+      const same = list.filter((w) => w.category === c).length
+      if (same === 1) {
+        const b = badgeById(`type_${c}`)
+        if (b) out.push(b)
+      }
+    }
+
+    return out
+  }
+
+  function dismissBadge() {
+    setPendingBadges((prev) => {
+      const next = prev.slice(1)
+      // When the queue empties, continue the post-Done flow
+      if (next.length === 0) {
+        if (isOwner && photos.length === 0) {
+          setShowPhotoPrompt(true)
+        } else {
+          finishAndExit()
+        }
+      }
+      return next
+    })
   }
 
   function finishAndExit() {
@@ -648,6 +724,8 @@ export default function WorkoutPage({ params }: { params: Promise<{ id: string }
         onConfirm={confirmDeletePhoto}
         onCancel={() => setPhotoToDelete(null)}
       />
+
+      <BadgeCelebration badge={pendingBadges[0] ?? null} onClose={dismissBadge} />
 
       {showPhotoPrompt && (
         <div
