@@ -19,6 +19,7 @@ import {
   type QueuedWorkoutInfo,
 } from '@/lib/friends'
 import type { Exercise } from '@/lib/types'
+import { localDateStr } from '@/lib/dates'
 
 export default function Home() {
   const router = useRouter()
@@ -117,7 +118,7 @@ export default function Home() {
     setStarting(true)
     const { data, error } = await supabase
       .from('workouts')
-      .insert({ date: new Date().toISOString().split('T')[0] })
+      .insert({ date: localDateStr() })
       .select()
       .single()
     if (data) {

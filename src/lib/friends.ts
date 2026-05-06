@@ -1,4 +1,5 @@
 import { supabase } from './supabase'
+import { localDateStr } from './dates'
 
 export interface FriendUser {
   id: string
@@ -197,7 +198,7 @@ export async function consumeQueuedWorkout(
   selfId: string,
   queued: QueuedWorkoutInfo
 ): Promise<{ newWorkoutId: string; exerciseIds: string[] } | { error: string }> {
-  const today = new Date().toISOString().split('T')[0]
+  const today = localDateStr()
   const { data: created, error } = await supabase
     .from('workouts')
     .insert({ date: today, category: queued.category })

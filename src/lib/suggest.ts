@@ -2,6 +2,7 @@ import { supabase } from './supabase'
 import { CATEGORIES, CATEGORY_MUSCLE_GROUPS, type Category } from './categories'
 import { muscleForExercise } from './muscleGroups'
 import type { Exercise } from './types'
+import { localDateStr } from './dates'
 
 export interface Suggestion {
   category: Category
@@ -26,7 +27,7 @@ export async function suggestWorkout(userId: string): Promise<Suggestion> {
   // Pull recent workouts (last 30 days is enough to know what's been done)
   const since = new Date()
   since.setDate(since.getDate() - 30)
-  const sinceStr = since.toISOString().split('T')[0]
+  const sinceStr = localDateStr(since)
 
   const { data: workoutsData } = await supabase
     .from('workouts')
@@ -106,7 +107,7 @@ export async function suggestWorkout(userId: string): Promise<Suggestion> {
       .select('exercise_id, exercises!inner(id, name, muscle_group, created_at), workouts!inner(date, user_id)')
       .eq('workouts.user_id', userId)
 
-    const today = new Date().toISOString().split('T')[0]
+    const today = localDateStr()
     const stats = new Map<string, { ex: Exercise; count: number; lastDate: string }>()
     for (const row of (allSets ?? []) as unknown as SetRowWithExercise[]) {
       const ex = row.exercises
@@ -161,7 +162,7 @@ export async function suggestWorkout(userId: string): Promise<Suggestion> {
       }
     }
 
-    const todayMs = new Date(new Date().toISOString().split('T')[0] + 'T12:00:00').getTime()
+    const todayMs = new Date(localDateStr() + 'T12:00:00').getTime()
     const stale = Array.from(altStats.values())
       .map((v) => {
         const daysAgo = Math.max(
@@ -183,7 +184,7 @@ export async function suggestWorkout(userId: string): Promise<Suggestion> {
 }
 
 export async function startSuggestedWorkout(suggestion: Suggestion): Promise<string | null> {
-  const today = new Date().toISOString().split('T')[0]
+  const today = localDateStr()
 
   const { data: workout, error } = await supabase
     .from('workouts')

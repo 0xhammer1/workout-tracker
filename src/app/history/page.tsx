@@ -7,6 +7,7 @@ import type { Workout } from '@/lib/types'
 import ConfirmDialog from '@/components/ConfirmDialog'
 import CategoryBadge from '@/components/CategoryBadge'
 import { useAuth } from '@/lib/auth'
+import { localDateStr } from '@/lib/dates'
 import {
   muscleForExercise,
   type MuscleGroup,
@@ -40,7 +41,7 @@ function startDateFor(period: Period): string | null {
   else if (period === 'month') now.setMonth(now.getMonth() - 1)
   else if (period === 'year') now.setFullYear(now.getFullYear() - 1)
   else return null
-  return now.toISOString().split('T')[0]
+  return localDateStr(now)
 }
 
 interface SetRow {
@@ -190,7 +191,7 @@ export default function HistoryPage() {
         >
           <div className="flex items-baseline justify-between mb-4">
             <p className="text-xs font-semibold tracking-wider uppercase" style={{ color: 'var(--text-secondary)' }}>
-              This Week
+              Sets This Week
             </p>
             <p className="text-sm font-medium">
               <span className="text-lg font-bold">{weeklySummary.dayCount}</span>

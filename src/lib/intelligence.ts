@@ -1,6 +1,7 @@
 import { supabase } from './supabase'
 import { muscleForExercise, type MuscleGroup } from './muscleGroups'
 import type { Exercise } from './types'
+import { localDateStr } from './dates'
 
 // =================
 //  Progressive overload
@@ -123,7 +124,7 @@ export interface MuscleRecovery {
 export async function getMuscleRecovery(userId: string): Promise<MuscleRecovery[]> {
   const since = new Date()
   since.setDate(since.getDate() - 3)
-  const sinceStr = since.toISOString().split('T')[0]
+  const sinceStr = localDateStr(since)
 
   const { data } = await supabase
     .from('sets')
@@ -140,7 +141,7 @@ export async function getMuscleRecovery(userId: string): Promise<MuscleRecovery[
   }
   const rows = (data ?? []) as unknown as Row[]
 
-  const today = new Date().toISOString().split('T')[0]
+  const today = localDateStr()
   const volumeByGroup = new Map<MuscleGroup, number>()
   const lastDateByGroup = new Map<MuscleGroup, string>()
 

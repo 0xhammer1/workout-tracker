@@ -17,6 +17,7 @@ import ConfirmDialog from '@/components/ConfirmDialog'
 import Avatar from '@/components/Avatar'
 import { resizeImageToDataUrl } from '@/lib/imageResize'
 import { useAuth, signOut } from '@/lib/auth'
+import { localDateStr } from '@/lib/dates'
 
 interface WeightLog {
   id: string
@@ -39,7 +40,7 @@ function startDateFor(period: Period): string | null {
   else if (period === 'month') now.setMonth(now.getMonth() - 1)
   else if (period === 'year') now.setFullYear(now.getFullYear() - 1)
   else return null
-  return now.toISOString().split('T')[0]
+  return localDateStr(now)
 }
 
 export default function ProfilePage() {
@@ -47,7 +48,7 @@ export default function ProfilePage() {
   const [loading, setLoading] = useState(true)
   const [period, setPeriod] = useState<Period>('month')
   const [weightInput, setWeightInput] = useState('')
-  const [dateInput, setDateInput] = useState(new Date().toISOString().split('T')[0])
+  const [dateInput, setDateInput] = useState(localDateStr())
   const [saving, setSaving] = useState(false)
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null)
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null)
@@ -165,7 +166,7 @@ export default function ProfilePage() {
       return
     }
     setWeightInput('')
-    setDateInput(new Date().toISOString().split('T')[0])
+    setDateInput(localDateStr())
     load()
   }
 

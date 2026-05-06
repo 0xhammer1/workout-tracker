@@ -24,6 +24,7 @@ import {
 import PhotoCard, { type CommenterInfo } from '@/components/PhotoCard'
 import CategoryBadge from '@/components/CategoryBadge'
 import Avatar from '@/components/Avatar'
+import { localDateStr } from '@/lib/dates'
 
 function fireworks() {
   const duration = 800
@@ -156,7 +157,7 @@ export default function WorkoutPage({ params }: { params: Promise<{ id: string }
       await refreshSocial(loadedPhotos, w?.user_id ?? null)
 
       // If workout is from today and empty, default to edit mode
-      const today = new Date().toISOString().split('T')[0]
+      const today = localDateStr()
       if (w?.date === today && (!setsRaw || setsRaw.length === 0)) {
         // No exercises yet, picker will be shown
       }

@@ -6,6 +6,7 @@ import { supabase } from '@/lib/supabase'
 import type { Exercise } from '@/lib/types'
 import ProgressChart from '@/components/ProgressChart'
 import { useAuth } from '@/lib/auth'
+import { localDateStr } from '@/lib/dates'
 
 interface ChartPoint {
   date: string
@@ -28,7 +29,7 @@ function startDateFor(period: Period): string | null {
   else if (period === 'month') now.setMonth(now.getMonth() - 1)
   else if (period === 'year') now.setFullYear(now.getFullYear() - 1)
   else return null
-  return now.toISOString().split('T')[0]
+  return localDateStr(now)
 }
 
 export default function PersonalRecordsPage() {
