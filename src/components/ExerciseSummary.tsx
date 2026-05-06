@@ -12,7 +12,7 @@ interface SetData {
 interface Props {
   exercise: { name: string; muscle_group?: string | null }
   sets: SetData[]
-  onEdit: () => void
+  onEdit?: () => void
 }
 
 export default function ExerciseSummary({ exercise, sets, onEdit }: Props) {
@@ -25,13 +25,15 @@ export default function ExerciseSummary({ exercise, sets, onEdit }: Props) {
           <h3 className="text-lg font-semibold truncate">{exercise.name}</h3>
           <MuscleBadge exercise={exercise} />
         </div>
-        <button
-          onClick={onEdit}
-          className="text-sm font-semibold transition-opacity active:opacity-60 shrink-0"
-          style={{ color: 'var(--accent)' }}
-        >
-          Edit
-        </button>
+        {onEdit && (
+          <button
+            onClick={onEdit}
+            className="text-sm font-semibold transition-opacity active:opacity-60 shrink-0"
+            style={{ color: 'var(--accent)' }}
+          >
+            Edit
+          </button>
+        )}
       </div>
 
       {sortedSets.length === 0 ? (

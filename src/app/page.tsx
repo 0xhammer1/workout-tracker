@@ -9,8 +9,16 @@ import CategoryBadge from '@/components/CategoryBadge'
 import MuscleBadge from '@/components/MuscleBadge'
 import RecoveryStrip from '@/components/RecoveryStrip'
 import { suggestWorkout, startSuggestedWorkout, type Suggestion } from '@/lib/suggest'
-import { CATEGORY_LABELS, CATEGORY_COLORS } from '@/lib/categories'
+import { CATEGORY_LABELS, CATEGORY_COLORS, type Category } from '@/lib/categories'
 import { useAuth } from '@/lib/auth'
+import Avatar from '@/components/Avatar'
+import {
+  loadQueuedWorkout,
+  consumeQueuedWorkout,
+  clearQueuedWorkout,
+  type QueuedWorkoutInfo,
+} from '@/lib/friends'
+import type { Exercise } from '@/lib/types'
 
 export default function Home() {
   const router = useRouter()
@@ -21,6 +29,8 @@ export default function Home() {
   const [suggestion, setSuggestion] = useState<Suggestion | null>(null)
   const [startingSuggested, setStartingSuggested] = useState(false)
   const [displayName, setDisplayName] = useState<string>('')
+  const [queued, setQueued] = useState<QueuedWorkoutInfo | null>(null)
+  const [queuedExerciseNames, setQueuedExerciseNames] = useState<Exercise[]>([])
 
   useEffect(() => {
     supabase
@@ -35,6 +45,22 @@ export default function Home() {
 
     suggestWorkout().then(setSuggestion)
   }, [])
+
+  useEffect(() => {
+    if (!user) return
+    loadQueuedWorkout(user.id).then(async (q) => {
+      setQueued(q)
+      if (q && q.exercise_ids.length > 0) {
+        const { data } = await supabase
+          .from('exercises')
+          .select('id, name, muscle_group, created_at')
+          .in('id', q.exercise_ids)
+        setQueuedExerciseNames((data ?? []) as Exercise[])
+      } else {
+        setQueuedExerciseNames([])
+      }
+    })
+  }, [user?.id])
 
   useEffect(() => {
     if (!user) return
@@ -59,6 +85,30 @@ export default function Home() {
     const id = await startSuggestedWorkout(suggestion)
     if (id) router.push(`/workout/${id}`)
     else setStartingSuggested(false)
+  }
+
+  async function startQueued() {
+    if (!queued || !user) return
+    setStartingSuggested(true)
+    const result = await consumeQueuedWorkout(user.id, queued)
+    if ('error' in result) {
+      alert(result.error)
+      setStartingSuggested(false)
+      return
+    }
+    sessionStorage.setItem(
+      `suggestedExercises:${result.newWorkoutId}`,
+      JSON.stringify(result.exerciseIds)
+    )
+    sessionStorage.setItem('freshWorkoutId', result.newWorkoutId)
+    router.push(`/workout/${result.newWorkoutId}`)
+  }
+
+  async function dismissQueued() {
+    if (!user) return
+    await clearQueuedWorkout(user.id)
+    setQueued(null)
+    setQueuedExerciseNames([])
   }
 
   async function startWorkout() {
@@ -109,61 +159,71 @@ export default function Home() {
 
       <RecoveryStrip />
 
-      {suggestion && (
-        <div
-          className="rounded-2xl p-5 mb-10"
-          style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}
-        >
-          <div className="flex items-center justify-between mb-2 gap-2">
-            <p className="text-xs font-semibold" style={{ color: 'var(--text-secondary)' }}>
-              Suggested Today
+      {queued ? (
+        <QueuedCard
+          queued={queued}
+          exercises={queuedExerciseNames}
+          starting={startingSuggested}
+          onStart={startQueued}
+          onDismiss={dismissQueued}
+        />
+      ) : (
+        suggestion && (
+          <div
+            className="rounded-2xl p-5 mb-10"
+            style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}
+          >
+            <div className="flex items-center justify-between mb-2 gap-2">
+              <p className="text-xs font-semibold" style={{ color: 'var(--text-secondary)' }}>
+                Suggested Today
+              </p>
+              <span
+                className="inline-flex items-center px-2 py-0.5 text-[10px] font-semibold tracking-wider uppercase rounded-full shrink-0"
+                style={{
+                  background: CATEGORY_COLORS[suggestion.category].bg,
+                  color: CATEGORY_COLORS[suggestion.category].color,
+                }}
+              >
+                {CATEGORY_LABELS[suggestion.category]}
+              </span>
+            </div>
+            <p className="text-sm mb-4" style={{ color: 'var(--text-secondary)' }}>
+              {suggestion.reason}
             </p>
-            <span
-              className="inline-flex items-center px-2 py-0.5 text-[10px] font-semibold tracking-wider uppercase rounded-full shrink-0"
+
+            {suggestion.exercises.length > 0 ? (
+              <ul className="space-y-2 mb-4">
+                {suggestion.exercises.map((ex) => (
+                  <li
+                    key={ex.id}
+                    className="flex items-center justify-between gap-2 px-3 py-2.5 rounded-xl"
+                    style={{ background: 'var(--surface-elevated)' }}
+                  >
+                    <span className="text-sm font-medium truncate">{ex.name}</span>
+                    <MuscleBadge exercise={ex} />
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-sm mb-4" style={{ color: 'var(--text-tertiary)' }}>
+                No previous {CATEGORY_LABELS[suggestion.category]} day to copy from — start fresh.
+              </p>
+            )}
+
+            <button
+              onClick={startSuggested}
+              disabled={startingSuggested}
+              className="w-full font-semibold text-sm py-3 rounded-xl transition-all active:scale-[0.98] disabled:opacity-60"
               style={{
                 background: CATEGORY_COLORS[suggestion.category].bg,
                 color: CATEGORY_COLORS[suggestion.category].color,
+                border: `1px solid ${CATEGORY_COLORS[suggestion.category].color}55`,
               }}
             >
-              {CATEGORY_LABELS[suggestion.category]}
-            </span>
+              {startingSuggested ? 'Starting…' : `Start ${CATEGORY_LABELS[suggestion.category]} Day`}
+            </button>
           </div>
-          <p className="text-sm mb-4" style={{ color: 'var(--text-secondary)' }}>
-            {suggestion.reason}
-          </p>
-
-          {suggestion.exercises.length > 0 ? (
-            <ul className="space-y-2 mb-4">
-              {suggestion.exercises.map((ex) => (
-                <li
-                  key={ex.id}
-                  className="flex items-center justify-between gap-2 px-3 py-2.5 rounded-xl"
-                  style={{ background: 'var(--surface-elevated)' }}
-                >
-                  <span className="text-sm font-medium truncate">{ex.name}</span>
-                  <MuscleBadge exercise={ex} />
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p className="text-sm mb-4" style={{ color: 'var(--text-tertiary)' }}>
-              No previous {CATEGORY_LABELS[suggestion.category]} day to copy from — start fresh.
-            </p>
-          )}
-
-          <button
-            onClick={startSuggested}
-            disabled={startingSuggested}
-            className="w-full font-semibold text-sm py-3 rounded-xl transition-all active:scale-[0.98] disabled:opacity-60"
-            style={{
-              background: CATEGORY_COLORS[suggestion.category].bg,
-              color: CATEGORY_COLORS[suggestion.category].color,
-              border: `1px solid ${CATEGORY_COLORS[suggestion.category].color}55`,
-            }}
-          >
-            {startingSuggested ? 'Starting…' : `Start ${CATEGORY_LABELS[suggestion.category]} Day`}
-          </button>
-        </div>
+        )
       )}
 
       <section>
@@ -213,6 +273,101 @@ export default function Home() {
           </div>
         )}
       </section>
+    </div>
+  )
+}
+
+function QueuedCard({
+  queued,
+  exercises,
+  starting,
+  onStart,
+  onDismiss,
+}: {
+  queued: QueuedWorkoutInfo
+  exercises: Exercise[]
+  starting: boolean
+  onStart: () => void
+  onDismiss: () => void
+}) {
+  const friendName = queued.source_display_name ?? 'A friend'
+  const firstName = friendName.split(' ')[0]
+  const cat = (queued.category as Category | null) ?? null
+  const colors = cat ? CATEGORY_COLORS[cat] : null
+  const heading = cat ? `${firstName}'s ${CATEGORY_LABELS[cat].toLowerCase()} workout` : `${firstName}'s workout`
+
+  return (
+    <div
+      className="rounded-2xl p-5 mb-10"
+      style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}
+    >
+      <div className="flex items-center justify-between mb-3 gap-2">
+        <p className="text-xs font-semibold" style={{ color: 'var(--text-secondary)' }}>
+          Up Next
+        </p>
+        {colors && cat && (
+          <span
+            className="inline-flex items-center px-2 py-0.5 text-[10px] font-semibold tracking-wider uppercase rounded-full shrink-0"
+            style={{ background: colors.bg, color: colors.color }}
+          >
+            {CATEGORY_LABELS[cat]}
+          </span>
+        )}
+      </div>
+
+      <div className="flex items-center gap-3 mb-4">
+        <div
+          className="w-10 h-10 rounded-full overflow-hidden shrink-0"
+          style={{ border: '1px solid var(--border)' }}
+        >
+          <Avatar src={queued.source_avatar_url} name={friendName} size={40} />
+        </div>
+        <div className="min-w-0">
+          <p className="text-base font-bold truncate">{heading}</p>
+          <p className="text-xs" style={{ color: 'var(--text-tertiary)' }}>
+            Saved from {friendName}'s feed
+          </p>
+        </div>
+      </div>
+
+      {exercises.length > 0 && (
+        <ul className="space-y-2 mb-4">
+          {exercises.map((ex) => (
+            <li
+              key={ex.id}
+              className="flex items-center justify-between gap-2 px-3 py-2.5 rounded-xl"
+              style={{ background: 'var(--surface-elevated)' }}
+            >
+              <span className="text-sm font-medium truncate">{ex.name}</span>
+              <MuscleBadge exercise={ex} />
+            </li>
+          ))}
+        </ul>
+      )}
+
+      <button
+        onClick={onStart}
+        disabled={starting}
+        className="w-full font-semibold text-sm py-3 rounded-xl transition-all active:scale-[0.98] disabled:opacity-60 mb-2"
+        style={
+          colors
+            ? {
+                background: colors.bg,
+                color: colors.color,
+                border: `1px solid ${colors.color}55`,
+              }
+            : { background: 'var(--accent)', color: 'white' }
+        }
+      >
+        {starting ? 'Starting…' : 'Start This Workout'}
+      </button>
+      <button
+        onClick={onDismiss}
+        className="w-full text-xs font-medium py-1.5 transition-opacity active:opacity-60"
+        style={{ color: 'var(--text-tertiary)' }}
+      >
+        Dismiss
+      </button>
     </div>
   )
 }

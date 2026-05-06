@@ -15,8 +15,15 @@ import {
   uploadWorkoutPhoto,
   deleteWorkoutPhoto,
   loadPhotosForWorkouts,
+  loadReactionsForPhotos,
+  loadCommentsForPhotos,
   type WorkoutPhoto,
+  type PhotoReaction,
+  type PhotoComment,
 } from '@/lib/photos'
+import PhotoCard, { type CommenterInfo } from '@/components/PhotoCard'
+import CategoryBadge from '@/components/CategoryBadge'
+import Avatar from '@/components/Avatar'
 
 function fireworks() {
   const duration = 800
@@ -77,6 +84,10 @@ export default function WorkoutPage({ params }: { params: Promise<{ id: string }
   const [photos, setPhotos] = useState<WorkoutPhoto[]>([])
   const [uploadingPhoto, setUploadingPhoto] = useState(false)
   const [photoToDelete, setPhotoToDelete] = useState<WorkoutPhoto | null>(null)
+  const [reactionsByPhoto, setReactionsByPhoto] = useState<Record<string, PhotoReaction[]>>({})
+  const [commentsByPhoto, setCommentsByPhoto] = useState<Record<string, PhotoComment[]>>({})
+  const [commenters, setCommenters] = useState<Record<string, CommenterInfo>>({})
+  const [ownerInfo, setOwnerInfo] = useState<{ display_name: string | null; avatar_url: string | null } | null>(null)
   const photoInputRef = useRef<HTMLInputElement>(null)
   const { user } = useAuth()
   const isOwner = !!user && !!workout && workout.user_id === user.id
@@ -139,7 +150,9 @@ export default function WorkoutPage({ params }: { params: Promise<{ id: string }
       setEntries(Array.from(map.values()))
 
       const photosMap = await loadPhotosForWorkouts([id])
-      setPhotos(photosMap[id] ?? [])
+      const loadedPhotos = photosMap[id] ?? []
+      setPhotos(loadedPhotos)
+      await refreshSocial(loadedPhotos, w?.user_id ?? null)
 
       // If workout is from today and empty, default to edit mode
       const today = new Date().toISOString().split('T')[0]
@@ -150,7 +163,61 @@ export default function WorkoutPage({ params }: { params: Promise<{ id: string }
       setLoading(false)
     }
     load()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id])
+
+  async function refreshSocial(currentPhotos: WorkoutPhoto[], ownerId: string | null) {
+    if (currentPhotos.length === 0 && !ownerId) return
+    const photoIds = currentPhotos.map((p) => p.id)
+    const reactions: Record<string, PhotoReaction[]> =
+      photoIds.length > 0 ? await loadReactionsForPhotos(photoIds) : {}
+    const comments: Record<string, PhotoComment[]> =
+      photoIds.length > 0 ? await loadCommentsForPhotos(photoIds) : {}
+    const ownerProfile = ownerId
+      ? await supabase
+          .from('user_profiles')
+          .select('display_name, avatar_url')
+          .eq('user_id', ownerId)
+          .maybeSingle()
+      : { data: null }
+    setReactionsByPhoto(reactions)
+    setCommentsByPhoto(comments)
+
+    if (ownerProfile.data) {
+      setOwnerInfo({
+        display_name: (ownerProfile.data.display_name as string | null) ?? null,
+        avatar_url: (ownerProfile.data.avatar_url as string | null) ?? null,
+      })
+    }
+
+    // Build commenters map for whoever appears in comments
+    const seenIds = new Set<string>()
+    for (const list of Object.values(comments)) {
+      for (const c of list) seenIds.add(c.user_id)
+    }
+    if (user) seenIds.add(user.id)
+    if (ownerId) seenIds.add(ownerId)
+
+    const map: Record<string, CommenterInfo> = {}
+    if (seenIds.size > 0) {
+      const { data: rows } = await supabase
+        .from('user_profiles')
+        .select('user_id, display_name, avatar_url')
+        .in('user_id', [...seenIds])
+      for (const r of rows ?? []) {
+        map[r.user_id as string] = {
+          display_name: r.display_name as string | null,
+          avatar_url: r.avatar_url as string | null,
+        }
+      }
+    }
+    setCommenters(map)
+  }
+
+  async function refreshSocialOnly() {
+    if (!workout) return
+    await refreshSocial(photos, workout.user_id)
+  }
 
   async function onPhotoPicked(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
@@ -294,30 +361,61 @@ export default function WorkoutPage({ params }: { params: Promise<{ id: string }
           >
             ‹ Back
           </button>
+          {!isOwner && ownerInfo && (
+            <div className="flex items-center gap-2 mb-2">
+              <div
+                className="w-7 h-7 rounded-full overflow-hidden shrink-0"
+                style={{ border: '1px solid var(--border)' }}
+              >
+                <Avatar src={ownerInfo.avatar_url} name={ownerInfo.display_name ?? '—'} size={28} />
+              </div>
+              <span className="text-sm font-semibold truncate">
+                {ownerInfo.display_name ?? '—'}
+              </span>
+            </div>
+          )}
           <h1 className="text-2xl font-bold tracking-tight truncate">{dateLabel}</h1>
         </div>
-        <div className="flex items-center gap-2 mt-7 shrink-0">
-          <button
-            onClick={() => setConfirmDelete(true)}
-            className="text-sm font-semibold py-2 px-3 rounded-full transition-opacity active:opacity-60"
-            style={{
-              background: 'rgba(239, 68, 68, 0.1)',
-              color: 'var(--danger)',
-              border: '1px solid rgba(239, 68, 68, 0.25)',
-            }}
-          >
-            Delete
-          </button>
-          <button
-            onClick={finishWorkout}
-            disabled={saving}
-            className="text-sm font-semibold py-2 px-4 rounded-full transition-all active:scale-95 disabled:opacity-60"
-            style={{ background: 'var(--accent)', color: 'white' }}
-          >
-            {saving ? 'Saving…' : 'Done'}
-          </button>
-        </div>
+        {isOwner && (
+          <div className="flex items-center gap-2 mt-7 shrink-0">
+            <button
+              onClick={() => setConfirmDelete(true)}
+              className="text-sm font-semibold py-2 px-3 rounded-full transition-opacity active:opacity-60"
+              style={{
+                background: 'rgba(239, 68, 68, 0.1)',
+                color: 'var(--danger)',
+                border: '1px solid rgba(239, 68, 68, 0.25)',
+              }}
+            >
+              Delete
+            </button>
+            <button
+              onClick={finishWorkout}
+              disabled={saving}
+              className="text-sm font-semibold py-2 px-4 rounded-full transition-all active:scale-95 disabled:opacity-60"
+              style={{ background: 'var(--accent)', color: 'white' }}
+            >
+              {saving ? 'Saving…' : 'Done'}
+            </button>
+          </div>
+        )}
       </div>
+
+      {!isOwner && photos.length > 0 && user && (
+        <div className="mb-5">
+          {photos.map((p) => (
+            <PhotoCard
+              key={p.id}
+              photo={p}
+              reactions={reactionsByPhoto[p.id] ?? []}
+              comments={commentsByPhoto[p.id] ?? []}
+              currentUserId={user.id}
+              commenters={commenters}
+              onChange={refreshSocialOnly}
+            />
+          ))}
+        </div>
+      )}
 
       {isOwner && (
         <div className="mb-5">
@@ -365,31 +463,39 @@ export default function WorkoutPage({ params }: { params: Promise<{ id: string }
         </div>
       )}
 
-      <div className="mb-5">
-        <p className="text-xs font-semibold mb-2" style={{ color: 'var(--text-secondary)' }}>
-          Workout Type
-        </p>
-        <div className="flex flex-wrap gap-2">
-          {CATEGORIES.map((c) => {
-            const active = category === c
-            const colors = CATEGORY_COLORS[c]
-            return (
-              <button
-                key={c}
-                onClick={() => setWorkoutCategory(active ? '' : c)}
-                className="px-3 py-1.5 text-xs font-semibold rounded-full transition-all"
-                style={{
-                  background: active ? colors.bg : 'var(--surface)',
-                  color: active ? colors.color : 'var(--text-secondary)',
-                  border: `1px solid ${active ? colors.color + '55' : 'var(--border)'}`,
-                }}
-              >
-                {CATEGORY_LABELS[c]}
-              </button>
-            )
-          })}
+      {isOwner ? (
+        <div className="mb-5">
+          <p className="text-xs font-semibold mb-2" style={{ color: 'var(--text-secondary)' }}>
+            Workout Type
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {CATEGORIES.map((c) => {
+              const active = category === c
+              const colors = CATEGORY_COLORS[c]
+              return (
+                <button
+                  key={c}
+                  onClick={() => setWorkoutCategory(active ? '' : c)}
+                  className="px-3 py-1.5 text-xs font-semibold rounded-full transition-all"
+                  style={{
+                    background: active ? colors.bg : 'var(--surface)',
+                    color: active ? colors.color : 'var(--text-secondary)',
+                    border: `1px solid ${active ? colors.color + '55' : 'var(--border)'}`,
+                  }}
+                >
+                  {CATEGORY_LABELS[c]}
+                </button>
+              )
+            })}
+          </div>
         </div>
-      </div>
+      ) : (
+        category && (
+          <div className="mb-5">
+            <CategoryBadge category={category} />
+          </div>
+        )
+      )}
 
       {entries.length === 0 && (
         <div
@@ -406,7 +512,7 @@ export default function WorkoutPage({ params }: { params: Promise<{ id: string }
       )}
 
       {entries.map(({ exercise, sets }) =>
-        editingIds.has(exercise.id) ? (
+        isOwner && editingIds.has(exercise.id) ? (
           <ExerciseBlock
             key={exercise.id}
             exercise={exercise}
@@ -429,27 +535,40 @@ export default function WorkoutPage({ params }: { params: Promise<{ id: string }
             key={exercise.id}
             exercise={exercise}
             sets={sets}
-            onEdit={() => toggleEdit(exercise.id)}
+            onEdit={isOwner ? () => toggleEdit(exercise.id) : undefined}
           />
         )
       )}
 
-      <button
-        onClick={() => setShowPicker(true)}
-        className="w-full py-4 text-base font-semibold rounded-2xl transition-colors mb-4"
-        style={{ background: 'var(--surface)', color: 'var(--accent)', border: '1px solid var(--border)' }}
-      >
-        + Add Exercise
-      </button>
+      {isOwner && (
+        <button
+          onClick={() => setShowPicker(true)}
+          className="w-full py-4 text-base font-semibold rounded-2xl transition-colors mb-4"
+          style={{ background: 'var(--surface)', color: 'var(--accent)', border: '1px solid var(--border)' }}
+        >
+          + Add Exercise
+        </button>
+      )}
 
-      <textarea
-        placeholder="Notes…"
-        value={notes}
-        onChange={(e) => setNotes(e.target.value)}
-        rows={2}
-        className="w-full px-4 py-3 text-sm rounded-2xl outline-none resize-none"
-        style={{ background: 'var(--surface)', color: 'var(--text)', border: '1px solid var(--border)' }}
-      />
+      {isOwner ? (
+        <textarea
+          placeholder="Notes…"
+          value={notes}
+          onChange={(e) => setNotes(e.target.value)}
+          rows={2}
+          className="w-full px-4 py-3 text-sm rounded-2xl outline-none resize-none"
+          style={{ background: 'var(--surface)', color: 'var(--text)', border: '1px solid var(--border)' }}
+        />
+      ) : (
+        notes && (
+          <div
+            className="px-4 py-3 text-sm rounded-2xl"
+            style={{ background: 'var(--surface)', color: 'var(--text-secondary)', border: '1px solid var(--border)' }}
+          >
+            {notes}
+          </div>
+        )
+      )}
 
       {showPicker && (
         <ExercisePicker

@@ -107,39 +107,100 @@ export interface FeedWorkout {
   privacy: PrivacyLevel
 }
 
-export async function cloneWorkoutToMine(
-  sourceWorkoutId: string
-): Promise<{ newWorkoutId: string; exerciseIds: string[] } | { error: string }> {
-  // 1. Fetch the source workout (RLS lets friends read this when privacy != none)
-  const { data: source, error: srcErr } = await supabase
-    .from('workouts')
-    .select('id, category')
-    .eq('id', sourceWorkoutId)
-    .single()
-  if (srcErr || !source) return { error: srcErr?.message ?? 'Could not read workout' }
+// Save a friend's workout as the user's next suggested workout. Doesn't
+// create a workout row yet — that happens when the user starts it from home.
+export async function queueWorkoutFromFriend(
+  selfId: string,
+  sourceWorkoutId: string,
+  sourceUserId: string
+): Promise<{ ok: true } | { error: string }> {
+  const { error } = await supabase
+    .from('user_profiles')
+    .update({
+      queued_source_workout_id: sourceWorkoutId,
+      queued_source_user_id: sourceUserId,
+    })
+    .eq('user_id', selfId)
+  if (error) return { error: error.message }
+  return { ok: true }
+}
 
-  // 2. Pull distinct exercise IDs (requires the source owner to be on privacy=full)
-  const { data: sets, error: setsErr } = await supabase
-    .from('sets')
-    .select('exercise_id')
-    .eq('workout_id', sourceWorkoutId)
-  if (setsErr) return { error: setsErr.message }
+export interface QueuedWorkoutInfo {
+  source_workout_id: string
+  source_user_id: string
+  source_display_name: string | null
+  source_avatar_url: string | null
+  category: string | null
+  exercise_ids: string[]
+}
 
-  const exerciseIds = [...new Set(((sets ?? []) as { exercise_id: string }[]).map((s) => s.exercise_id))]
-  if (exerciseIds.length === 0) {
-    return { error: "Couldn't load this workout's exercises. Owner may have set privacy below Full." }
+// Read the queued workout pointer plus enough source info to display it on
+// the home screen. Returns null if no queue is set or if it can't be resolved
+// (e.g. friendship ended or source workout was deleted).
+export async function loadQueuedWorkout(selfId: string): Promise<QueuedWorkoutInfo | null> {
+  const { data: profile } = await supabase
+    .from('user_profiles')
+    .select('queued_source_workout_id, queued_source_user_id')
+    .eq('user_id', selfId)
+    .maybeSingle()
+
+  const sourceId = profile?.queued_source_workout_id as string | null
+  const sourceUserId = profile?.queued_source_user_id as string | null
+  if (!sourceId || !sourceUserId) return null
+
+  const [{ data: source }, { data: sets }, { data: friendProfile }] = await Promise.all([
+    supabase.from('workouts').select('id, category').eq('id', sourceId).maybeSingle(),
+    supabase.from('sets').select('exercise_id').eq('workout_id', sourceId),
+    supabase
+      .from('user_profiles')
+      .select('display_name, avatar_url')
+      .eq('user_id', sourceUserId)
+      .maybeSingle(),
+  ])
+
+  if (!source) {
+    // Source deleted or no longer visible — clear the queue.
+    await clearQueuedWorkout(selfId)
+    return null
   }
 
-  // 3. Create a new workout for the current user, copying the category
+  const exercise_ids = [
+    ...new Set(((sets ?? []) as { exercise_id: string }[]).map((s) => s.exercise_id)),
+  ]
+
+  return {
+    source_workout_id: source.id as string,
+    source_user_id: sourceUserId,
+    source_display_name: (friendProfile?.display_name as string | null) ?? null,
+    source_avatar_url: (friendProfile?.avatar_url as string | null) ?? null,
+    category: (source.category as string | null) ?? null,
+    exercise_ids,
+  }
+}
+
+export async function clearQueuedWorkout(selfId: string) {
+  return supabase
+    .from('user_profiles')
+    .update({ queued_source_workout_id: null, queued_source_user_id: null })
+    .eq('user_id', selfId)
+}
+
+// Materialize the queued workout: create the workout row for today and
+// clear the queue. Returns the new workout id + exercise IDs to pre-populate.
+export async function consumeQueuedWorkout(
+  selfId: string,
+  queued: QueuedWorkoutInfo
+): Promise<{ newWorkoutId: string; exerciseIds: string[] } | { error: string }> {
   const today = new Date().toISOString().split('T')[0]
-  const { data: created, error: createErr } = await supabase
+  const { data: created, error } = await supabase
     .from('workouts')
-    .insert({ date: today, category: source.category })
+    .insert({ date: today, category: queued.category })
     .select('id')
     .single()
-  if (createErr || !created) return { error: createErr?.message ?? 'Could not create workout' }
+  if (error || !created) return { error: error?.message ?? 'Could not create workout' }
 
-  return { newWorkoutId: created.id as string, exerciseIds }
+  await clearQueuedWorkout(selfId)
+  return { newWorkoutId: created.id as string, exerciseIds: queued.exercise_ids }
 }
 
 export async function loadFeed(selfId: string, friendIds: string[]): Promise<FeedWorkout[]> {

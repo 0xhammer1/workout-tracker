@@ -9,12 +9,11 @@ import {
   deleteFriendRow,
   loadFriendData,
   loadFeed,
-  cloneWorkoutToMine,
+  queueWorkoutFromFriend,
   type FriendUser,
   type FriendRequestRow,
   type FeedWorkout,
 } from '@/lib/friends'
-import { useRouter } from 'next/navigation'
 import Avatar from '@/components/Avatar'
 import CategoryBadge from '@/components/CategoryBadge'
 import PhotoCard, { type CommenterInfo } from '@/components/PhotoCard'
@@ -27,6 +26,7 @@ import {
   type PhotoComment,
 } from '@/lib/photos'
 import { supabase } from '@/lib/supabase'
+import Link from 'next/link'
 
 interface FriendEntry {
   request: FriendRequestRow
@@ -35,9 +35,9 @@ interface FriendEntry {
 
 export default function FriendsPage() {
   const { user } = useAuth()
-  const router = useRouter()
   const [loading, setLoading] = useState(true)
-  const [cloning, setCloning] = useState<string | null>(null)
+  const [queueing, setQueueing] = useState<string | null>(null)
+  const [queuedSourceId, setQueuedSourceId] = useState<string | null>(null)
   const [friends, setFriends] = useState<FriendEntry[]>([])
   const [incoming, setIncoming] = useState<FriendEntry[]>([])
   const [outgoing, setOutgoing] = useState<FriendEntry[]>([])
@@ -121,21 +121,30 @@ export default function FriendsPage() {
     await refreshSocial(feed)
   }
 
+  // Load any existing queue once we know who the user is, so the button
+  // can show its "Queued" state immediately on first render.
+  useEffect(() => {
+    if (!user) return
+    supabase
+      .from('user_profiles')
+      .select('queued_source_workout_id')
+      .eq('user_id', user.id)
+      .maybeSingle()
+      .then(({ data }) => {
+        setQueuedSourceId((data?.queued_source_workout_id as string | null) ?? null)
+      })
+  }, [user?.id])
+
   async function useThisWorkout(workout: FeedWorkout) {
-    if (!user || cloning) return
-    setCloning(workout.id)
-    const result = await cloneWorkoutToMine(workout.id)
-    setCloning(null)
+    if (!user || queueing) return
+    setQueueing(workout.id)
+    const result = await queueWorkoutFromFriend(user.id, workout.id, workout.user_id)
+    setQueueing(null)
     if ('error' in result) {
       alert(result.error)
       return
     }
-    sessionStorage.setItem(
-      `suggestedExercises:${result.newWorkoutId}`,
-      JSON.stringify(result.exerciseIds)
-    )
-    sessionStorage.setItem('freshWorkoutId', result.newWorkoutId)
-    router.push(`/workout/${result.newWorkoutId}`)
+    setQueuedSourceId(workout.id)
   }
 
   useEffect(() => {
@@ -364,7 +373,8 @@ export default function FriendsPage() {
                 currentUserId={user?.id ?? ''}
                 onSocialChange={refreshSocialOnly}
                 onUseWorkout={useThisWorkout}
-                cloning={cloning === w.id}
+                queueing={queueing === w.id}
+                isQueued={queuedSourceId === w.id}
               />
             ))}
           </div>
@@ -440,7 +450,8 @@ interface FeedRowProps {
   currentUserId: string
   onSocialChange: () => void
   onUseWorkout: (workout: FeedWorkout) => void
-  cloning: boolean
+  queueing: boolean
+  isQueued: boolean
 }
 
 function FeedRow({
@@ -452,10 +463,12 @@ function FeedRow({
   currentUserId,
   onSocialChange,
   onUseWorkout,
-  cloning,
+  queueing,
+  isQueued,
 }: FeedRowProps) {
   const isOwn = workout.user_id === currentUserId
   const canClone = !isOwn && workout.privacy === 'full'
+  const showDetailsLink = !isOwn && workout.privacy === 'full'
   const name = workout.display_name ?? '—'
   const dateLabel = new Date(workout.date + 'T12:00:00').toLocaleDateString('en-US', {
     weekday: 'short',
@@ -506,18 +519,48 @@ function FeedRow({
         </div>
       )}
 
-      {canClone && (
-        <button
-          onClick={() => onUseWorkout(workout)}
-          disabled={cloning}
-          className="mt-2 w-full py-2.5 text-sm font-semibold rounded-xl transition-all active:scale-[0.99] disabled:opacity-60 flex items-center justify-center gap-2"
-          style={{ background: 'var(--surface-elevated)', color: 'var(--accent)', border: '1px solid var(--border)' }}
-        >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M5 12h14M13 18l6-6-6-6" />
-          </svg>
-          {cloning ? 'Loading…' : 'Use this workout'}
-        </button>
+      {(showDetailsLink || canClone) && (
+        <div className="mt-2 flex items-center gap-2">
+          {showDetailsLink && (
+            <Link
+              href={`/workout/${workout.id}`}
+              className="flex-1 py-2 text-xs font-semibold rounded-xl text-center transition-colors active:opacity-70"
+              style={{ background: 'var(--surface-elevated)', color: 'var(--text-secondary)', border: '1px solid var(--border)' }}
+            >
+              View details →
+            </Link>
+          )}
+          {canClone && (
+            <button
+              onClick={() => onUseWorkout(workout)}
+              disabled={queueing || isQueued}
+              className="flex-1 py-2 text-xs font-semibold rounded-xl transition-all active:scale-[0.99] disabled:opacity-70 flex items-center justify-center gap-1.5"
+              style={{
+                background: isQueued ? 'var(--surface-elevated)' : 'var(--surface-elevated)',
+                color: isQueued ? 'var(--text-secondary)' : 'var(--accent)',
+                border: '1px solid var(--border)',
+              }}
+            >
+              {isQueued ? (
+                <>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="20 6 9 17 4 12" />
+                  </svg>
+                  Queued for next workout
+                </>
+              ) : queueing ? (
+                'Saving…'
+              ) : (
+                <>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M5 12h14M13 18l6-6-6-6" />
+                  </svg>
+                  Use this workout
+                </>
+              )}
+            </button>
+          )}
+        </div>
       )}
     </div>
   )
