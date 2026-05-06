@@ -2,6 +2,7 @@
 
 import { useState, useEffect, use, useRef } from 'react'
 import { useRouter } from 'next/navigation'
+import { toast } from 'sonner'
 import confetti from 'canvas-confetti'
 import { supabase } from '@/lib/supabase'
 import type { Exercise, Workout } from '@/lib/types'
@@ -262,7 +263,7 @@ export default function WorkoutPage({ params }: { params: Promise<{ id: string }
         if (count !== 1) finishAndExit()
       }
     } catch (err) {
-      alert(`Upload failed: ${(err as Error).message}`)
+      toast.error('Upload failed')
     } finally {
       setUploadingPhoto(false)
       if (photoInputRef.current) photoInputRef.current.value = ''
@@ -365,8 +366,13 @@ export default function WorkoutPage({ params }: { params: Promise<{ id: string }
 
   async function finishWorkout() {
     setSaving(true)
-    await supabase.from('workouts').update({ notes: notes || null, category: category || null }).eq('id', id)
+    const { error } = await supabase.from('workouts').update({ notes: notes || null, category: category || null }).eq('id', id)
     setSaving(false)
+
+    if (error) {
+      toast.error('Failed to save workout')
+      return
+    }
 
     const newlyEarned = await checkBadgesOnDone()
     if (newlyEarned.length > 0) {
@@ -426,6 +432,20 @@ export default function WorkoutPage({ params }: { params: Promise<{ id: string }
       }
       return next
     })
+  }
+
+  async function shareWorkout() {
+    const url = window.location.href
+    if (navigator.share) {
+      try {
+        await navigator.share({ url, title: `${dateLabel} – Workout` })
+      } catch {
+        // user cancelled share sheet
+      }
+    } else {
+      await navigator.clipboard.writeText(url)
+      toast.success('Link copied!')
+    }
   }
 
   function finishAndExit() {
@@ -510,29 +530,43 @@ export default function WorkoutPage({ params }: { params: Promise<{ id: string }
             </div>
           )}
         </div>
-        {isOwner && (
-          <div className="flex items-center gap-2 mt-7 shrink-0">
-            <button
-              onClick={() => setConfirmDelete(true)}
-              className="text-sm font-semibold py-2 px-3 rounded-full transition-opacity active:opacity-60"
-              style={{
-                background: 'rgba(239, 68, 68, 0.1)',
-                color: 'var(--danger)',
-                border: '1px solid rgba(239, 68, 68, 0.25)',
-              }}
-            >
-              Delete
-            </button>
-            <button
-              onClick={finishWorkout}
-              disabled={saving}
-              className="text-sm font-semibold py-2 px-4 rounded-full transition-all active:scale-95 disabled:opacity-60"
-              style={{ background: 'var(--accent)', color: 'white' }}
-            >
-              {saving ? 'Saving…' : 'Done'}
-            </button>
-          </div>
-        )}
+        <div className="flex items-center gap-2 mt-7 shrink-0">
+          <button
+            onClick={shareWorkout}
+            aria-label="Share workout"
+            className="w-9 h-9 flex items-center justify-center rounded-full transition-opacity active:opacity-60"
+            style={{ background: 'var(--surface)', border: '1px solid var(--border)', color: 'var(--text-secondary)' }}
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" />
+              <polyline points="16 6 12 2 8 6" />
+              <line x1="12" y1="2" x2="12" y2="15" />
+            </svg>
+          </button>
+          {isOwner && (
+            <>
+              <button
+                onClick={() => setConfirmDelete(true)}
+                className="text-sm font-semibold py-2 px-3 rounded-full transition-opacity active:opacity-60"
+                style={{
+                  background: 'rgba(239, 68, 68, 0.1)',
+                  color: 'var(--danger)',
+                  border: '1px solid rgba(239, 68, 68, 0.25)',
+                }}
+              >
+                Delete
+              </button>
+              <button
+                onClick={finishWorkout}
+                disabled={saving}
+                className="text-sm font-semibold py-2 px-4 rounded-full transition-all active:scale-95 disabled:opacity-60"
+                style={{ background: 'var(--accent)', color: 'white' }}
+              >
+                {saving ? 'Saving…' : 'Done'}
+              </button>
+            </>
+          )}
+        </div>
       </div>
 
       {!isOwner && photos.length > 0 && user && (

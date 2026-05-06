@@ -210,6 +210,93 @@ export async function consumeQueuedWorkout(
   return { newWorkoutId: created.id as string, exerciseIds: queued.exercise_ids }
 }
 
+export interface FriendProfileWorkout {
+  id: string
+  date: string
+  category: string | null
+}
+
+export interface FriendProfileData {
+  profile: FriendUser
+  privacyLevel: PrivacyLevel
+  workoutCount: number
+  categoriesEverDone: Set<string>
+  photoCount: number
+  maxPhotoReactions: number
+  recentWorkouts: FriendProfileWorkout[]
+}
+
+export async function loadFriendProfile(
+  viewerId: string,
+  friendId: string
+): Promise<FriendProfileData | null> {
+  const { data: req } = await supabase
+    .from('friend_requests')
+    .select('id')
+    .or(
+      `and(from_user_id.eq.${viewerId},to_user_id.eq.${friendId}),and(from_user_id.eq.${friendId},to_user_id.eq.${viewerId})`
+    )
+    .eq('status', 'accepted')
+    .maybeSingle()
+
+  if (!req) return null
+
+  const [{ data: profileRow }, { data: ws }, { data: photos }] = await Promise.all([
+    supabase
+      .from('user_profiles')
+      .select('display_name, avatar_url, default_privacy')
+      .eq('user_id', friendId)
+      .maybeSingle(),
+    supabase
+      .from('workouts')
+      .select('id, date, category')
+      .eq('user_id', friendId)
+      .order('date', { ascending: false }),
+    supabase.from('workout_photos').select('id').eq('user_id', friendId),
+  ])
+
+  const privacyLevel = ((profileRow?.default_privacy as string) || 'full') as PrivacyLevel
+  const workouts = (ws ?? []) as { id: string; date: string; category: string | null }[]
+  const ps = (photos ?? []) as { id: string }[]
+
+  const categoriesEverDone = new Set<string>()
+  for (const w of workouts) if (w.category) categoriesEverDone.add(w.category)
+
+  let maxPhotoReactions = 0
+  if (ps.length > 0) {
+    const { data: reactions } = await supabase
+      .from('photo_reactions')
+      .select('photo_id')
+      .in('photo_id', ps.map((p) => p.id))
+    const counts = new Map<string, number>()
+    for (const r of (reactions ?? []) as { photo_id: string }[]) {
+      counts.set(r.photo_id, (counts.get(r.photo_id) ?? 0) + 1)
+    }
+    for (const c of counts.values()) if (c > maxPhotoReactions) maxPhotoReactions = c
+  }
+
+  const recentWorkouts: FriendProfileWorkout[] = workouts.slice(0, 50).map((w) => ({
+    id: w.id,
+    date: w.date,
+    category: privacyLevel === 'minimal' || privacyLevel === 'none' ? null : w.category,
+  }))
+
+  return {
+    profile: {
+      id: friendId,
+      email: '',
+      display_name: (profileRow?.display_name as string | null) ?? null,
+      avatar_url: (profileRow?.avatar_url as string | null) ?? null,
+    },
+    privacyLevel,
+    workoutCount: workouts.length,
+    categoriesEverDone,
+    photoCount: ps.length,
+    maxPhotoReactions,
+    recentWorkouts,
+  }
+}
+
 export async function loadFeed(selfId: string, friendIds: string[]): Promise<FeedWorkout[]> {
   const allIds = [selfId, ...friendIds]
   const { data: ws } = await supabase
