@@ -469,6 +469,7 @@ function FeedRow({
   const isOwn = workout.user_id === currentUserId
   const canClone = !isOwn && workout.privacy === 'full'
   const showDetailsLink = !isOwn && workout.privacy === 'full'
+  const friendFirstName = (workout.display_name ?? '').split(' ')[0] || 'their'
   const name = workout.display_name ?? '—'
   const dateLabel = new Date(workout.date + 'T12:00:00').toLocaleDateString('en-US', {
     weekday: 'short',
@@ -520,45 +521,47 @@ function FeedRow({
       )}
 
       {(showDetailsLink || canClone) && (
-        <div className="mt-2 flex items-center gap-2">
-          {showDetailsLink && (
-            <Link
-              href={`/workout/${workout.id}`}
-              className="flex-1 py-2 text-xs font-semibold rounded-xl text-center transition-colors active:opacity-70"
-              style={{ background: 'var(--surface-elevated)', color: 'var(--text-secondary)', border: '1px solid var(--border)' }}
-            >
-              View details →
-            </Link>
-          )}
-          {canClone && (
-            <button
-              onClick={() => onUseWorkout(workout)}
-              disabled={queueing || isQueued}
-              className="flex-1 py-2 text-xs font-semibold rounded-xl transition-all active:scale-[0.99] disabled:opacity-70 flex items-center justify-center gap-1.5"
-              style={{
-                background: isQueued ? 'var(--surface-elevated)' : 'var(--surface-elevated)',
-                color: isQueued ? 'var(--text-secondary)' : 'var(--accent)',
-                border: '1px solid var(--border)',
-              }}
-            >
-              {isQueued ? (
-                <>
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                    <polyline points="20 6 9 17 4 12" />
-                  </svg>
-                  Queued for next workout
-                </>
-              ) : queueing ? (
-                'Saving…'
-              ) : (
-                <>
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M5 12h14M13 18l6-6-6-6" />
-                  </svg>
-                  Use this workout
-                </>
-              )}
-            </button>
+        <div className="mt-2 flex flex-col gap-2">
+          <div className="flex items-center gap-2">
+            {showDetailsLink && (
+              <Link
+                href={`/workout/${workout.id}`}
+                className="flex-1 py-2.5 text-sm font-semibold rounded-xl text-center transition-colors active:opacity-70"
+                style={{ background: 'var(--surface-elevated)', color: 'var(--text)', border: '1px solid var(--border)' }}
+              >
+                See details
+              </Link>
+            )}
+            {canClone && (
+              <button
+                onClick={() => onUseWorkout(workout)}
+                disabled={queueing || isQueued}
+                className="flex-1 py-2.5 text-sm font-semibold rounded-xl transition-all active:scale-[0.99] disabled:opacity-70 flex items-center justify-center gap-1.5"
+                style={{
+                  background: isQueued ? 'var(--surface-elevated)' : 'var(--accent)',
+                  color: isQueued ? 'var(--text-secondary)' : 'white',
+                  border: isQueued ? '1px solid var(--border)' : 'none',
+                }}
+              >
+                {isQueued ? (
+                  <>
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                      <polyline points="20 6 9 17 4 12" />
+                    </svg>
+                    Queued
+                  </>
+                ) : queueing ? (
+                  'Saving…'
+                ) : (
+                  `Try ${friendFirstName}${friendFirstName.endsWith('s') ? "'" : "'s"} workout!`
+                )}
+              </button>
+            )}
+          </div>
+          {isQueued && (
+            <p className="text-xs px-1" style={{ color: 'var(--text-tertiary)' }}>
+              Saved as your next workout. Start it from the Home tab.
+            </p>
           )}
         </div>
       )}

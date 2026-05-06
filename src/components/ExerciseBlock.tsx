@@ -6,6 +6,7 @@ import type { Exercise } from '@/lib/types'
 import MuscleBadge from './MuscleBadge'
 import MuscleGroupPicker from './MuscleGroupPicker'
 import { getLastBest, suggestProgression, type Suggested, type LastBest } from '@/lib/intelligence'
+import { useAuth } from '@/lib/auth'
 
 interface ExistingSet {
   id: string
@@ -31,6 +32,7 @@ interface SetRow {
 }
 
 export default function ExerciseBlock({ exercise, workoutId, onRemove, onDone, onMuscleGroupChange, initialSets }: Props) {
+  const { user } = useAuth()
   const [sets, setSets] = useState<SetRow[]>([])
   const [lastBest, setLastBest] = useState<LastBest | null>(null)
   const [suggested, setSuggested] = useState<Suggested | null>(null)
@@ -38,6 +40,7 @@ export default function ExerciseBlock({ exercise, workoutId, onRemove, onDone, o
   const [showMusclePicker, setShowMusclePicker] = useState(false)
 
   useEffect(() => {
+    if (!user) return
     if (initialSets && initialSets.length > 0) {
       setSets(
         initialSets.map((s) => ({
@@ -48,14 +51,14 @@ export default function ExerciseBlock({ exercise, workoutId, onRemove, onDone, o
         }))
       )
       // Still load last best for the suggestion banner
-      getLastBest(exercise.id, workoutId).then((b) => {
+      getLastBest(exercise.id, workoutId, user.id).then((b) => {
         setLastBest(b)
         if (b) setSuggested(suggestProgression(b))
       })
       return
     }
 
-    getLastBest(exercise.id, workoutId).then((b) => {
+    getLastBest(exercise.id, workoutId, user.id).then((b) => {
       setLastBest(b)
       const s = b ? suggestProgression(b) : null
       setSuggested(s)
@@ -67,7 +70,7 @@ export default function ExerciseBlock({ exercise, workoutId, onRemove, onDone, o
         },
       ])
     })
-  }, [exercise.id, workoutId, initialSets])
+  }, [exercise.id, workoutId, initialSets, user?.id])
 
   async function addSet() {
     const prev = sets[sets.length - 1]

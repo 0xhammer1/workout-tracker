@@ -23,21 +23,25 @@ export interface Suggested {
  */
 export async function getLastBest(
   exerciseId: string,
-  excludeWorkoutId?: string
+  excludeWorkoutId?: string,
+  userId?: string
 ): Promise<LastBest | null> {
-  // Get last workout (by date) where this exercise was performed
+  // Get last workout (by date) where this exercise was performed.
+  // Filter by userId so friends' sets (visible via RLS when their privacy
+  // is full) don't pollute the autofill.
   let q = supabase
     .from('sets')
-    .select('weight, reps, workout_id, workouts!inner(id, date)')
+    .select('weight, reps, workout_id, workouts!inner(id, date, user_id)')
     .eq('exercise_id', exerciseId)
     .not('weight', 'is', null)
   if (excludeWorkoutId) q = q.neq('workout_id', excludeWorkoutId)
+  if (userId) q = q.eq('workouts.user_id', userId)
 
   const { data } = await q
   if (!data || data.length === 0) return null
 
   // Group by workout, find most recent workout's sets, pick top set there
-  type Row = { weight: number | string; reps: number | string | null; workout_id: string; workouts: { id: string; date: string } }
+  type Row = { weight: number | string; reps: number | string | null; workout_id: string; workouts: { id: string; date: string; user_id: string } }
   const rows = data as unknown as Row[]
   const byWorkout = new Map<string, { date: string; sets: { weight: number; reps: number }[] }>()
   for (const r of rows) {

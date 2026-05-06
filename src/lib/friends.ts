@@ -114,13 +114,19 @@ export async function queueWorkoutFromFriend(
   sourceWorkoutId: string,
   sourceUserId: string
 ): Promise<{ ok: true } | { error: string }> {
+  // upsert so this still works even if the user_profiles row was somehow
+  // missing — handle_new_user() trigger should always create one but better
+  // to defend against drift.
   const { error } = await supabase
     .from('user_profiles')
-    .update({
-      queued_source_workout_id: sourceWorkoutId,
-      queued_source_user_id: sourceUserId,
-    })
-    .eq('user_id', selfId)
+    .upsert(
+      {
+        user_id: selfId,
+        queued_source_workout_id: sourceWorkoutId,
+        queued_source_user_id: sourceUserId,
+      },
+      { onConflict: 'user_id' }
+    )
   if (error) return { error: error.message }
   return { ok: true }
 }
