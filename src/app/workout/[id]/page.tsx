@@ -83,7 +83,6 @@ export default function WorkoutPage({ params }: { params: Promise<{ id: string }
   const [workout, setWorkout] = useState<Workout | null>(null)
   const [entries, setEntries] = useState<ExerciseEntry[]>([])
   const [editingIds, setEditingIds] = useState<Set<string>>(new Set())
-  const [headerVariant, setHeaderVariant] = useState<'a' | 'b' | 'c'>('a')
   const [showPicker, setShowPicker] = useState(false)
   const [notes, setNotes] = useState('')
   const [category, setCategory] = useState<Category | ''>('')
@@ -478,159 +477,86 @@ export default function WorkoutPage({ params }: { params: Promise<{ id: string }
     day: 'numeric',
   })
 
-  // ── Shared header building blocks ──────────────────────────────────────────
-  const backBtn = (
-    <button
-      onClick={() => router.back()}
-      className="text-sm font-medium transition-opacity active:opacity-60"
-      style={{ color: 'var(--text-secondary)' }}
-    >
-      ‹ Back
-    </button>
-  )
-
-  const ownerRow = !isOwner && ownerInfo && (
-    <div className="flex items-center gap-2">
-      <div className="w-7 h-7 rounded-full overflow-hidden shrink-0" style={{ border: '1px solid var(--border)' }}>
-        <Avatar src={ownerInfo.avatar_url} name={ownerInfo.display_name ?? '—'} size={28} />
-      </div>
-      <span className="text-sm font-semibold truncate">{ownerInfo.display_name ?? '—'}</span>
-    </div>
-  )
-
-  const dateEl = isOwner && editingDate ? (
-    <input
-      type="date"
-      autoFocus
-      defaultValue={workoutDate}
-      max={localDateStr()}
-      onBlur={(e) => saveDate(e.target.value)}
-      onChange={(e) => { if (e.target.value) saveDate(e.target.value) }}
-      className="text-2xl font-bold tracking-tight rounded-xl px-2 py-0.5 outline-none"
-      style={{ background: 'var(--surface)', color: 'var(--text)', border: '1px solid var(--accent)' }}
-    />
-  ) : (
-    <div className="flex items-center gap-2">
-      <h1 className="text-2xl font-bold tracking-tight">{dateLabel}</h1>
-      {isOwner && (
-        <button onClick={() => setEditingDate(true)} aria-label="Edit date" className="shrink-0 transition-opacity active:opacity-60" style={{ color: 'var(--text-tertiary)' }}>
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-          </svg>
-        </button>
-      )}
-    </div>
-  )
-
-  const shareBtn = (full?: boolean) => (
-    <button
-      onClick={shareWorkout}
-      aria-label="Share workout"
-      className={`flex items-center justify-center gap-1.5 transition-opacity active:opacity-60 ${full ? 'flex-1 py-2.5 text-sm font-semibold rounded-xl' : 'w-9 h-9 rounded-full'}`}
-      style={{ background: 'var(--surface)', border: '1px solid var(--border)', color: 'var(--text-secondary)' }}
-    >
-      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" />
-        <polyline points="16 6 12 2 8 6" />
-        <line x1="12" y1="2" x2="12" y2="15" />
-      </svg>
-      {full && 'Share'}
-    </button>
-  )
-
-  const deleteBtn = (full?: boolean) => isOwner && (
-    <button
-      onClick={() => setConfirmDelete(true)}
-      className={`text-sm font-semibold transition-opacity active:opacity-60 ${full ? 'flex-1 py-2.5 rounded-xl' : 'py-2 px-3 rounded-full'}`}
-      style={{ background: 'rgba(239,68,68,0.1)', color: 'var(--danger)', border: '1px solid rgba(239,68,68,0.25)' }}
-    >
-      Delete
-    </button>
-  )
-
-  const doneBtn = (full?: boolean) => isOwner && (
-    <button
-      onClick={finishWorkout}
-      disabled={saving}
-      className={`text-sm font-semibold transition-all active:scale-95 disabled:opacity-60 ${full ? 'flex-1 py-2.5 rounded-xl' : 'py-2 px-4 rounded-full'}`}
-      style={{ background: 'var(--accent)', color: 'white' }}
-    >
-      {saving ? 'Saving…' : 'Done'}
-    </button>
-  )
-
   return (
     <div>
-      {/* ── Layout preview switcher (temporary) ───────────────────────────── */}
-      <div className="flex items-center justify-center gap-1 pt-3 mb-1">
-        {(['a', 'b', 'c'] as const).map((v) => (
-          <button
-            key={v}
-            onClick={() => setHeaderVariant(v)}
-            className="px-3 py-1 text-xs font-bold rounded-full transition-all"
-            style={{
-              background: headerVariant === v ? 'var(--accent)' : 'var(--surface)',
-              color: headerVariant === v ? 'white' : 'var(--text-secondary)',
-              border: '1px solid var(--border)',
-            }}
-          >
-            {v.toUpperCase()}
-          </button>
-        ))}
-      </div>
-
-      {/* ── Option A: Back+Share on row 1 · Date+Delete+Done on row 2 ──── */}
-      {headerVariant === 'a' && (
-        <div className="pt-3 mb-6">
-          <div className="flex items-center justify-between mb-3">
-            {backBtn}
-            {shareBtn()}
+      {/* Back · Date · Share + Delete + Done */}
+      <div className="pt-3 mb-6">
+        <button
+          onClick={() => router.back()}
+          className="text-sm font-medium mb-2 transition-opacity active:opacity-60"
+          style={{ color: 'var(--text-secondary)' }}
+        >
+          ‹ Back
+        </button>
+        {!isOwner && ownerInfo && (
+          <div className="flex items-center gap-2 mb-2">
+            <div className="w-7 h-7 rounded-full overflow-hidden shrink-0" style={{ border: '1px solid var(--border)' }}>
+              <Avatar src={ownerInfo.avatar_url} name={ownerInfo.display_name ?? '—'} size={28} />
+            </div>
+            <span className="text-sm font-semibold truncate">{ownerInfo.display_name ?? '—'}</span>
           </div>
-          {ownerRow && <div className="mb-2">{ownerRow}</div>}
-          <div className="flex items-center justify-between gap-2">
-            <div className="min-w-0 flex-1">{dateEl}</div>
-            {isOwner && (
-              <div className="flex items-center gap-2 shrink-0">
-                {deleteBtn()}
-                {doneBtn()}
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* ── Option B: Back+Share · Date full-width · Delete+Done right ──── */}
-      {headerVariant === 'b' && (
-        <div className="pt-3 mb-6">
-          <div className="flex items-center justify-between mb-2">
-            {backBtn}
-            {shareBtn()}
-          </div>
-          {ownerRow && <div className="mb-2">{ownerRow}</div>}
-          <div className="mb-3">{dateEl}</div>
-          {isOwner && (
-            <div className="flex items-center justify-end gap-2">
-              {deleteBtn()}
-              {doneBtn()}
+        )}
+        <div className="mb-3">
+          {isOwner && editingDate ? (
+            <input
+              type="date"
+              autoFocus
+              defaultValue={workoutDate}
+              max={localDateStr()}
+              onBlur={(e) => saveDate(e.target.value)}
+              onChange={(e) => { if (e.target.value) saveDate(e.target.value) }}
+              className="text-2xl font-bold tracking-tight rounded-xl px-2 py-0.5 outline-none"
+              style={{ background: 'var(--surface)', color: 'var(--text)', border: '1px solid var(--accent)' }}
+            />
+          ) : (
+            <div className="flex items-center gap-2">
+              <h1 className="text-2xl font-bold tracking-tight">{dateLabel}</h1>
+              {isOwner && (
+                <button onClick={() => setEditingDate(true)} aria-label="Edit date" className="shrink-0 transition-opacity active:opacity-60" style={{ color: 'var(--text-tertiary)' }}>
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                  </svg>
+                </button>
+              )}
             </div>
           )}
         </div>
-      )}
-
-      {/* ── Option C: Back · Date full-width · Share+Delete+Done equal pills */}
-      {headerVariant === 'c' && (
-        <div className="pt-3 mb-6">
-          <div className="mb-2">{backBtn}</div>
-          {ownerRow && <div className="mb-2">{ownerRow}</div>}
-          <div className="mb-3">{dateEl}</div>
-          <div className="flex gap-2">
-            {shareBtn(true)}
-            {deleteBtn(true)}
-            {doneBtn(true)}
-          </div>
+        <div className="flex gap-2">
+          <button
+            onClick={shareWorkout}
+            aria-label="Share workout"
+            className="flex-1 flex items-center justify-center gap-1.5 py-2.5 text-sm font-semibold rounded-xl transition-opacity active:opacity-60"
+            style={{ background: 'var(--surface)', border: '1px solid var(--border)', color: 'var(--text-secondary)' }}
+          >
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" />
+              <polyline points="16 6 12 2 8 6" />
+              <line x1="12" y1="2" x2="12" y2="15" />
+            </svg>
+            Share
+          </button>
+          {isOwner && (
+            <>
+              <button
+                onClick={() => setConfirmDelete(true)}
+                className="flex-1 py-2.5 text-sm font-semibold rounded-xl transition-opacity active:opacity-60"
+                style={{ background: 'rgba(239,68,68,0.1)', color: 'var(--danger)', border: '1px solid rgba(239,68,68,0.25)' }}
+              >
+                Delete
+              </button>
+              <button
+                onClick={finishWorkout}
+                disabled={saving}
+                className="flex-1 py-2.5 text-sm font-semibold rounded-xl transition-all active:scale-95 disabled:opacity-60"
+                style={{ background: 'var(--accent)', color: 'white' }}
+              >
+                {saving ? 'Saving…' : 'Done'}
+              </button>
+            </>
+          )}
         </div>
-      )}
+      </div>
 
       {!isOwner && photos.length > 0 && user && (
         <div className="mb-5">
