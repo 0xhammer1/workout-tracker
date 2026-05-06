@@ -16,13 +16,12 @@ export interface FriendRequestRow {
   responded_at: string | null
 }
 
-export async function findUserByEmail(email: string): Promise<FriendUser | null> {
-  const { data, error } = await supabase.rpc('find_user_by_email', {
-    search_email: email,
-  })
-  if (error || !data || (Array.isArray(data) && data.length === 0)) return null
-  const row = Array.isArray(data) ? data[0] : data
-  return row as FriendUser
+export async function searchUsers(query: string): Promise<FriendUser[]> {
+  const trimmed = query.trim()
+  if (trimmed.length < 2) return []
+  const { data, error } = await supabase.rpc('search_users', { query: trimmed })
+  if (error || !data) return []
+  return data as FriendUser[]
 }
 
 export async function sendFriendRequest(toUserId: string, fromUserId: string) {
@@ -96,6 +95,8 @@ export async function loadFriendData(userId: string) {
   return { friends, incoming, outgoing }
 }
 
+export type PrivacyLevel = 'none' | 'minimal' | 'type_only' | 'full'
+
 export interface FeedWorkout {
   id: string
   date: string
@@ -103,6 +104,7 @@ export interface FeedWorkout {
   user_id: string
   display_name: string | null
   avatar_url: string | null
+  privacy: PrivacyLevel
 }
 
 export async function loadFriendsFeed(friendIds: string[]): Promise<FeedWorkout[]> {
@@ -120,7 +122,7 @@ export async function loadFriendsFeed(friendIds: string[]): Promise<FeedWorkout[
 
   const { data: pRows } = await supabase
     .from('user_profiles')
-    .select('user_id, display_name, avatar_url')
+    .select('user_id, display_name, avatar_url, default_privacy')
     .in('user_id', friendIds)
 
   const profiles = Object.fromEntries(
@@ -129,13 +131,21 @@ export async function loadFriendsFeed(friendIds: string[]): Promise<FeedWorkout[
       {
         display_name: p.display_name as string | null,
         avatar_url: p.avatar_url as string | null,
+        privacy: ((p.default_privacy as string) || 'full') as PrivacyLevel,
       },
     ])
   )
 
-  return rows.map((w) => ({
-    ...w,
-    display_name: profiles[w.user_id]?.display_name ?? null,
-    avatar_url: profiles[w.user_id]?.avatar_url ?? null,
-  }))
+  return rows.map((w) => {
+    const profile = profiles[w.user_id]
+    const privacy = profile?.privacy ?? 'full'
+    return {
+      ...w,
+      display_name: profile?.display_name ?? null,
+      avatar_url: profile?.avatar_url ?? null,
+      privacy,
+      // strip category for users sharing only the fact that they worked out
+      category: privacy === 'minimal' ? null : w.category,
+    }
+  })
 }

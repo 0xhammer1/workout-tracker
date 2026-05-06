@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useAuth } from '@/lib/auth'
 import {
-  findUserByEmail,
+  searchUsers,
   sendFriendRequest,
   acceptFriendRequest,
   deleteFriendRow,
@@ -30,11 +30,11 @@ export default function FriendsPage() {
   const [outgoing, setOutgoing] = useState<FriendEntry[]>([])
   const [feed, setFeed] = useState<FeedWorkout[]>([])
 
-  const [searchEmail, setSearchEmail] = useState('')
+  const [searchQuery, setSearchQuery] = useState('')
   const [searching, setSearching] = useState(false)
-  const [searchResult, setSearchResult] = useState<FriendUser | null | 'not_found'>(null)
+  const [searchResults, setSearchResults] = useState<FriendUser[] | null>(null)
   const [searchError, setSearchError] = useState<string | null>(null)
-  const [sending, setSending] = useState(false)
+  const [sending, setSending] = useState<string | null>(null)
 
   async function refresh() {
     if (!user) return
@@ -55,13 +55,13 @@ export default function FriendsPage() {
 
   async function search(e: React.FormEvent) {
     e.preventDefault()
-    if (!searchEmail.trim()) return
+    if (searchQuery.trim().length < 2) return
     setSearchError(null)
-    setSearchResult(null)
+    setSearchResults(null)
     setSearching(true)
     try {
-      const result = await findUserByEmail(searchEmail.trim())
-      setSearchResult(result ?? 'not_found')
+      const results = await searchUsers(searchQuery)
+      setSearchResults(results)
     } catch (err) {
       setSearchError((err as Error).message)
     } finally {
@@ -79,15 +79,14 @@ export default function FriendsPage() {
       setSearchError('You already have a request or friendship with this user.')
       return
     }
-    setSending(true)
+    setSending(target.id)
     const { error } = await sendFriendRequest(target.id, user.id)
-    setSending(false)
+    setSending(null)
     if (error) {
       setSearchError(error.message)
       return
     }
-    setSearchEmail('')
-    setSearchResult(null)
+    setSearchResults((prev) => prev?.filter((u) => u.id !== target.id) ?? null)
     refresh()
   }
 
@@ -122,17 +121,17 @@ export default function FriendsPage() {
         style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}
       >
         <p className="text-xs font-semibold mb-2" style={{ color: 'var(--text-secondary)' }}>
-          Add a friend by email
+          Add a friend by name or email
         </p>
         <div className="flex gap-2">
           <input
-            type="email"
+            type="text"
             inputMode="email"
             autoCapitalize="none"
             autoCorrect="off"
-            placeholder="friend@example.com"
-            value={searchEmail}
-            onChange={(e) => setSearchEmail(e.target.value)}
+            placeholder="Name or email"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
             className="flex-1 px-4 py-3 text-base rounded-xl outline-none"
             style={{
               background: 'var(--surface-elevated)',
@@ -142,7 +141,7 @@ export default function FriendsPage() {
           />
           <button
             type="submit"
-            disabled={searching || !searchEmail.trim()}
+            disabled={searching || searchQuery.trim().length < 2}
             className="px-5 py-3 text-sm font-semibold rounded-xl transition-all active:scale-95 disabled:opacity-40"
             style={{ background: 'var(--accent)', color: 'white' }}
           >
@@ -150,45 +149,50 @@ export default function FriendsPage() {
           </button>
         </div>
 
-        {searchResult === 'not_found' && (
+        {searchResults && searchResults.length === 0 && (
           <p className="mt-3 text-sm" style={{ color: 'var(--text-secondary)' }}>
-            No user with that email. They need to sign up first.
+            No matches. They might need to sign up first, or check the spelling.
           </p>
         )}
 
-        {searchResult && searchResult !== 'not_found' && (
-          <div
-            className="mt-3 flex items-center gap-3 p-3 rounded-xl"
-            style={{ background: 'var(--surface-elevated)' }}
-          >
-            <div
-              className="w-10 h-10 rounded-full overflow-hidden shrink-0"
-              style={{ border: '1px solid var(--border)' }}
-            >
-              <Avatar
-                src={searchResult.avatar_url}
-                name={searchResult.display_name ?? searchResult.email}
-                size={40}
-              />
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold truncate">
-                {searchResult.display_name ?? searchResult.email}
-              </p>
-              {searchResult.display_name && (
-                <p className="text-xs truncate" style={{ color: 'var(--text-tertiary)' }}>
-                  {searchResult.email}
-                </p>
-              )}
-            </div>
-            <button
-              onClick={() => send(searchResult)}
-              disabled={sending}
-              className="px-4 py-2 text-sm font-semibold rounded-lg transition-all active:scale-95 disabled:opacity-40"
-              style={{ background: 'var(--accent)', color: 'white' }}
-            >
-              {sending ? '…' : 'Add'}
-            </button>
+        {searchResults && searchResults.length > 0 && (
+          <div className="mt-3 space-y-2">
+            {searchResults.map((u) => (
+              <div
+                key={u.id}
+                className="flex items-center gap-3 p-3 rounded-xl"
+                style={{ background: 'var(--surface-elevated)' }}
+              >
+                <div
+                  className="w-10 h-10 rounded-full overflow-hidden shrink-0"
+                  style={{ border: '1px solid var(--border)' }}
+                >
+                  <Avatar
+                    src={u.avatar_url}
+                    name={u.display_name ?? u.email}
+                    size={40}
+                  />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold truncate">
+                    {u.display_name ?? u.email}
+                  </p>
+                  {u.display_name && (
+                    <p className="text-xs truncate" style={{ color: 'var(--text-tertiary)' }}>
+                      {u.email}
+                    </p>
+                  )}
+                </div>
+                <button
+                  onClick={() => send(u)}
+                  disabled={sending !== null}
+                  className="px-4 py-2 text-sm font-semibold rounded-lg transition-all active:scale-95 disabled:opacity-40"
+                  style={{ background: 'var(--accent)', color: 'white' }}
+                >
+                  {sending === u.id ? '…' : 'Add'}
+                </button>
+              </div>
+            ))}
           </div>
         )}
 
@@ -330,9 +334,27 @@ function Row({
 
 function FeedRow({ workout }: { workout: FeedWorkout }) {
   const name = workout.display_name ?? '—'
+  const dateLabel = new Date(workout.date + 'T12:00:00').toLocaleDateString('en-US', {
+    weekday: 'short',
+    month: 'short',
+    day: 'numeric',
+  })
+
+  const action =
+    workout.privacy === 'minimal'
+      ? 'worked out'
+      : 'completed a workout'
+
+  // Drill-in only for full-detail privacy; otherwise non-clickable card
+  const Wrapper = workout.privacy === 'full' ? Link : 'div'
+  const wrapperProps =
+    workout.privacy === 'full'
+      ? { href: `/workout/${workout.id}` }
+      : {}
+
   return (
-    <Link
-      href={`/workout/${workout.id}`}
+    <Wrapper
+      {...(wrapperProps as { href: string })}
       className="flex items-center gap-3 px-2 py-2 rounded-xl transition-colors active:bg-white/5"
     >
       <div
@@ -342,16 +364,15 @@ function FeedRow({ workout }: { workout: FeedWorkout }) {
         <Avatar src={workout.avatar_url} name={name} size={40} />
       </div>
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-semibold truncate">{name}</p>
-        <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
-          {new Date(workout.date + 'T12:00:00').toLocaleDateString('en-US', {
-            weekday: 'short',
-            month: 'short',
-            day: 'numeric',
-          })}
+        <p className="text-sm">
+          <span className="font-semibold">{name}</span>
+          <span style={{ color: 'var(--text-secondary)' }}> {action}</span>
+        </p>
+        <p className="text-xs" style={{ color: 'var(--text-tertiary)' }}>
+          {dateLabel}
         </p>
       </div>
-      <CategoryBadge category={workout.category} />
-    </Link>
+      {workout.category && <CategoryBadge category={workout.category} />}
+    </Wrapper>
   )
 }
