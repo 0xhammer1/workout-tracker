@@ -107,12 +107,12 @@ export interface FeedWorkout {
   privacy: PrivacyLevel
 }
 
-export async function loadFriendsFeed(friendIds: string[]): Promise<FeedWorkout[]> {
-  if (friendIds.length === 0) return []
+export async function loadFeed(selfId: string, friendIds: string[]): Promise<FeedWorkout[]> {
+  const allIds = [selfId, ...friendIds]
   const { data: ws } = await supabase
     .from('workouts')
     .select('id, date, category, user_id')
-    .in('user_id', friendIds)
+    .in('user_id', allIds)
     .order('date', { ascending: false })
     .order('created_at', { ascending: false })
     .limit(50)
@@ -123,7 +123,7 @@ export async function loadFriendsFeed(friendIds: string[]): Promise<FeedWorkout[
   const { data: pRows } = await supabase
     .from('user_profiles')
     .select('user_id, display_name, avatar_url, default_privacy')
-    .in('user_id', friendIds)
+    .in('user_id', allIds)
 
   const profiles = Object.fromEntries(
     (pRows ?? []).map((p) => [
@@ -138,13 +138,15 @@ export async function loadFriendsFeed(friendIds: string[]): Promise<FeedWorkout[
 
   return rows.map((w) => {
     const profile = profiles[w.user_id]
-    const privacy = profile?.privacy ?? 'full'
+    // Show our own workouts in full regardless of the privacy level we chose
+    // for sharing — the privacy setting only affects what friends see.
+    const privacy: PrivacyLevel = w.user_id === selfId ? 'full' : profile?.privacy ?? 'full'
     return {
       ...w,
       display_name: profile?.display_name ?? null,
       avatar_url: profile?.avatar_url ?? null,
       privacy,
-      // strip category for users sharing only the fact that they worked out
+      // strip category for friends sharing only the fact that they worked out
       category: privacy === 'minimal' ? null : w.category,
     }
   })

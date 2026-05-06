@@ -8,7 +8,7 @@ import {
   acceptFriendRequest,
   deleteFriendRow,
   loadFriendData,
-  loadFriendsFeed,
+  loadFeed,
   type FriendUser,
   type FriendRequestRow,
   type FeedWorkout,
@@ -69,7 +69,7 @@ export default function FriendsPage() {
     setFriends(data.friends)
     setIncoming(data.incoming)
     setOutgoing(data.outgoing)
-    const feedRows = await loadFriendsFeed(data.friends.map((f) => f.other.id))
+    const feedRows = await loadFeed(user.id, data.friends.map((f) => f.other.id))
     setFeed(feedRows)
     await refreshSocial(feedRows)
     setLoading(false)
@@ -324,13 +324,11 @@ export default function FriendsPage() {
               <div key={i} className="h-16 rounded-xl animate-pulse" style={{ background: 'var(--surface-elevated)' }} />
             ))}
           </div>
-        ) : friends.length === 0 ? (
-          <p className="text-sm py-2" style={{ color: 'var(--text-secondary)' }}>
-            Add friends to see their workouts here.
-          </p>
         ) : feed.length === 0 ? (
           <p className="text-sm py-2" style={{ color: 'var(--text-secondary)' }}>
-            No workouts from your friends yet.
+            {friends.length === 0
+              ? 'Add friends and log a workout to fill the feed.'
+              : 'No workouts yet.'}
           </p>
         ) : (
           <div className="space-y-3">
