@@ -2,8 +2,10 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
-import { useAuth } from '@/lib/auth'
+import { useAuth, signOut } from '@/lib/auth'
+import ConfirmDialog from '@/components/ConfirmDialog'
 
 type Privacy = 'none' | 'minimal' | 'type_only' | 'full'
 
@@ -16,8 +18,11 @@ const PRIVACY_OPTIONS: { value: Privacy; title: string; body: string }[] = [
 
 export default function SettingsPage() {
   const { user } = useAuth()
+  const router = useRouter()
   const [privacy, setPrivacy] = useState<Privacy>('full')
   const [openSection, setOpenSection] = useState<'privacy' | null>('privacy')
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [deleting, setDeleting] = useState(false)
 
   useEffect(() => {
     if (!user) return
@@ -30,6 +35,20 @@ export default function SettingsPage() {
         if (data?.default_privacy) setPrivacy(data.default_privacy as Privacy)
       })
   }, [user?.id])
+
+  async function deleteAccount() {
+    if (!user) return
+    setDeleting(true)
+    const { error } = await supabase.rpc('delete_own_account')
+    if (error) {
+      setDeleting(false)
+      setShowDeleteConfirm(false)
+      alert(`Could not delete account: ${error.message}`)
+      return
+    }
+    await signOut()
+    router.replace('/')
+  }
 
   async function setPrivacyLevel(level: Privacy) {
     if (!user) return
@@ -121,6 +140,31 @@ export default function SettingsPage() {
           </div>
         )}
       </div>
+
+      <div className="mt-10 flex justify-center">
+        <button
+          onClick={() => setShowDeleteConfirm(true)}
+          disabled={deleting}
+          className="px-5 py-2 text-sm font-semibold rounded-full transition-opacity active:opacity-60 disabled:opacity-40"
+          style={{
+            background: 'var(--surface)',
+            color: 'var(--danger)',
+            border: '1px solid var(--border)',
+          }}
+        >
+          {deleting ? 'Deleting…' : 'Delete Account'}
+        </button>
+      </div>
+
+      <ConfirmDialog
+        open={showDeleteConfirm}
+        title="Delete your account?"
+        message="This permanently deletes all your workouts, weight logs, photos, and profile. There is no undo."
+        confirmLabel="Delete Forever"
+        destructive
+        onConfirm={deleteAccount}
+        onCancel={() => setShowDeleteConfirm(false)}
+      />
     </div>
   )
 }
