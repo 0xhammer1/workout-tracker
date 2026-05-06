@@ -93,6 +93,8 @@ export default function WorkoutPage({ params }: { params: Promise<{ id: string }
   const [photoToDelete, setPhotoToDelete] = useState<WorkoutPhoto | null>(null)
   const [showPhotoPrompt, setShowPhotoPrompt] = useState(false)
   const [pendingBadges, setPendingBadges] = useState<Badge[]>([])
+  const [workoutDate, setWorkoutDate] = useState<string>('')
+  const [editingDate, setEditingDate] = useState(false)
   const [reactionsByPhoto, setReactionsByPhoto] = useState<Record<string, PhotoReaction[]>>({})
   const [commentsByPhoto, setCommentsByPhoto] = useState<Record<string, PhotoComment[]>>({})
   const [commenters, setCommenters] = useState<Record<string, CommenterInfo>>({})
@@ -107,6 +109,7 @@ export default function WorkoutPage({ params }: { params: Promise<{ id: string }
       if (w) {
         setWorkout(w)
         setNotes(w.notes ?? '')
+        setWorkoutDate(w.date)
         if (w.category && (CATEGORIES as readonly string[]).includes(w.category)) {
           setCategory(w.category as Category)
         }
@@ -346,6 +349,14 @@ export default function WorkoutPage({ params }: { params: Promise<{ id: string }
     await supabase.from('workouts').update({ category: c || null }).eq('id', id)
   }
 
+  async function saveDate(newDate: string) {
+    if (!newDate || newDate === workoutDate) { setEditingDate(false); return }
+    setWorkoutDate(newDate)
+    setEditingDate(false)
+    await supabase.from('workouts').update({ date: newDate }).eq('id', id)
+    setWorkout((prev) => prev ? { ...prev, date: newDate } : prev)
+  }
+
   async function deleteWorkout() {
     await supabase.from('workouts').delete().eq('id', id)
     sessionStorage.removeItem('freshWorkoutId')
@@ -439,7 +450,7 @@ export default function WorkoutPage({ params }: { params: Promise<{ id: string }
     )
   }
 
-  const dateLabel = new Date(workout.date + 'T12:00:00').toLocaleDateString('en-US', {
+  const dateLabel = new Date(workoutDate + 'T12:00:00').toLocaleDateString('en-US', {
     weekday: 'long',
     month: 'long',
     day: 'numeric',
@@ -469,7 +480,35 @@ export default function WorkoutPage({ params }: { params: Promise<{ id: string }
               </span>
             </div>
           )}
-          <h1 className="text-2xl font-bold tracking-tight truncate">{dateLabel}</h1>
+          {isOwner && editingDate ? (
+            <input
+              type="date"
+              autoFocus
+              defaultValue={workoutDate}
+              max={localDateStr()}
+              onBlur={(e) => saveDate(e.target.value)}
+              onChange={(e) => { if (e.target.value) saveDate(e.target.value) }}
+              className="text-2xl font-bold tracking-tight rounded-xl px-2 py-0.5 outline-none"
+              style={{ background: 'var(--surface)', color: 'var(--text)', border: '1px solid var(--accent)' }}
+            />
+          ) : (
+            <div className="flex items-center gap-2">
+              <h1 className="text-2xl font-bold tracking-tight truncate">{dateLabel}</h1>
+              {isOwner && (
+                <button
+                  onClick={() => setEditingDate(true)}
+                  aria-label="Edit date"
+                  className="shrink-0 transition-opacity active:opacity-60"
+                  style={{ color: 'var(--text-tertiary)' }}
+                >
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                  </svg>
+                </button>
+              )}
+            </div>
+          )}
         </div>
         {isOwner && (
           <div className="flex items-center gap-2 mt-7 shrink-0">
