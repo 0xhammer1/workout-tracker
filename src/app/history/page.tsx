@@ -142,7 +142,23 @@ export default function HistoryPage() {
 
   return (
     <div>
-      <h1 className="text-3xl font-bold tracking-tight pt-8 mb-6">History</h1>
+      <header className="pt-8 mb-6 flex items-center justify-between gap-3">
+        <h1 className="text-3xl font-bold tracking-tight">History</h1>
+        <Link
+          href="/progress"
+          className="px-4 py-2 text-sm font-semibold rounded-full transition-all active:scale-95 flex items-center gap-1.5"
+          style={{
+            background: 'var(--surface)',
+            color: 'var(--text)',
+            border: '1px solid var(--border)',
+          }}
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
+          </svg>
+          Personal Records
+        </Link>
+      </header>
 
       <div
         className="flex p-1 mb-6 rounded-xl"

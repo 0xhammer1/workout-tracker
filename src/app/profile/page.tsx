@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
+import Link from 'next/link'
 import {
   LineChart,
   Line,
@@ -55,7 +56,6 @@ export default function ProfilePage() {
   const [displayName, setDisplayName] = useState<string>('')
   const [editingName, setEditingName] = useState(false)
   const [nameDraft, setNameDraft] = useState('')
-  const [privacy, setPrivacy] = useState<'none' | 'minimal' | 'type_only' | 'full'>('full')
   const fileInputRef = useRef<HTMLInputElement>(null)
   const { user } = useAuth()
 
@@ -63,14 +63,11 @@ export default function ProfilePage() {
     if (!user) return
     const { data } = await supabase
       .from('user_profiles')
-      .select('display_name, avatar_url, default_privacy')
+      .select('display_name, avatar_url')
       .eq('user_id', user.id)
       .maybeSingle()
     if (data) {
       if (data.avatar_url) setAvatarUrl(data.avatar_url as string)
-      if (data.default_privacy) {
-        setPrivacy(data.default_privacy as typeof privacy)
-      }
       const fallbackName =
         (user.user_metadata as { full_name?: string; name?: string })?.full_name ||
         (user.user_metadata as { name?: string })?.name ||
@@ -107,17 +104,6 @@ export default function ProfilePage() {
     }
     setDisplayName(name)
     setEditingName(false)
-  }
-
-  async function setPrivacyLevel(level: typeof privacy) {
-    if (!user) return
-    setPrivacy(level)
-    const { error } = await supabase
-      .from('user_profiles')
-      .upsert({ user_id: user.id, default_privacy: level }, { onConflict: 'user_id' })
-    if (error) {
-      alert(`Could not save: ${error.message}`)
-    }
   }
 
   async function onAvatarPicked(e: React.ChangeEvent<HTMLInputElement>) {
@@ -203,7 +189,18 @@ export default function ProfilePage() {
 
   return (
     <div>
-      <header className="pt-8 pb-6 flex items-center gap-4">
+      <header className="pt-8 pb-6 flex items-center gap-4 relative">
+        <Link
+          href="/settings"
+          aria-label="Settings"
+          className="absolute top-8 right-0 w-10 h-10 flex items-center justify-center rounded-full transition-colors active:bg-white/10"
+          style={{ color: 'var(--text-secondary)' }}
+        >
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="3" />
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
+          </svg>
+        </Link>
         <button
           type="button"
           onClick={() => setAvatarOpen(true)}
@@ -519,50 +516,6 @@ export default function ProfilePage() {
           </div>
         </div>
       )}
-
-      <div className="mt-8">
-        <h2 className="text-xs font-semibold mb-3" style={{ color: 'var(--text-secondary)' }}>
-          Privacy
-        </h2>
-        <div
-          className="rounded-2xl overflow-hidden"
-          style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}
-        >
-          {(
-            [
-              { value: 'full', title: 'Full details', body: 'Friends see your category, exercises, sets, reps, and weights.' },
-              { value: 'type_only', title: 'Type only', body: 'Friends see the date and category (push/pull/legs).' },
-              { value: 'minimal', title: 'Minimal', body: 'Friends see that you worked out, nothing else.' },
-              { value: 'none', title: 'Private', body: 'Workouts don’t appear in friends’ feeds.' },
-            ] as const
-          ).map((opt, i) => (
-            <button
-              key={opt.value}
-              onClick={() => setPrivacyLevel(opt.value)}
-              className="w-full flex items-start gap-3 px-4 py-3 text-left transition-colors active:bg-white/5"
-              style={{ borderTop: i === 0 ? 'none' : '1px solid var(--border)' }}
-            >
-              <div
-                className="w-5 h-5 rounded-full mt-0.5 shrink-0 flex items-center justify-center"
-                style={{
-                  border: `2px solid ${privacy === opt.value ? 'var(--accent)' : 'var(--border-strong)'}`,
-                  background: privacy === opt.value ? 'var(--accent)' : 'transparent',
-                }}
-              >
-                {privacy === opt.value && (
-                  <div className="w-1.5 h-1.5 rounded-full" style={{ background: 'white' }} />
-                )}
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold">{opt.title}</p>
-                <p className="text-xs mt-0.5" style={{ color: 'var(--text-secondary)' }}>
-                  {opt.body}
-                </p>
-              </div>
-            </button>
-          ))}
-        </div>
-      </div>
 
       <div className="mt-10 flex justify-center">
         <button
