@@ -59,7 +59,7 @@ export function muscleFor(exerciseName: string): MuscleInfo {
 }
 
 export function muscleForExercise(ex: { name: string; muscle_group?: string | null }): MuscleInfo {
-  if (ex.muscle_group && ex.muscle_group in INFO) {
+  if (ex.muscle_group && ex.muscle_group in INFO && ex.muscle_group !== 'legs') {
     return INFO[ex.muscle_group as MuscleGroup]
   }
   return muscleFor(ex.name)
