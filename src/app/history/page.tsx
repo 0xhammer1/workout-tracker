@@ -37,8 +37,11 @@ const PERIODS: { label: string; value: Period }[] = [
 
 function startDateFor(period: Period): string | null {
   const now = new Date()
-  if (period === 'week') now.setDate(now.getDate() - 7)
-  else if (period === 'month') now.setMonth(now.getMonth() - 1)
+  if (period === 'week') {
+    const day = now.getDay() // 0=Sun, 1=Mon, ..., 6=Sat
+    const daysFromMonday = day === 0 ? 6 : day - 1
+    now.setDate(now.getDate() - daysFromMonday)
+  } else if (period === 'month') now.setMonth(now.getMonth() - 1)
   else if (period === 'year') now.setFullYear(now.getFullYear() - 1)
   else return null
   return localDateStr(now)
