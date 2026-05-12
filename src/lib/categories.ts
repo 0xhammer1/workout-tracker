@@ -12,7 +12,7 @@ export const CATEGORY_LABELS: Record<Category, string> = {
 export const CATEGORY_MUSCLE_GROUPS: Record<Category, MuscleGroup[]> = {
   push: ['chest', 'shoulders', 'triceps'],
   pull: ['back', 'biceps'],
-  legs: ['legs', 'glutes'],
+  legs: ['quads', 'hamstrings', 'legs', 'glutes'],
 }
 
 export const CATEGORY_COLORS: Record<Category, { color: string; bg: string }> = {
